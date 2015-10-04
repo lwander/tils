@@ -1,7 +1,7 @@
 IDIR=inc
 CXX=gcc
-CXXFLAGS=-I$(IDIR)/ -c -Wall -Wpedantic -Werror -std=c11 -g
-SHAREDFLAGS=
+CXXFLAGS=-I$(IDIR)/ -c -Wall -Wpedantic -Werror -std=c11 
+SHAREDFLAGS=-pthread
 
 OBJ_DIR=obj
 SRC_DIR=src
@@ -14,7 +14,7 @@ EXECUTABLE=c-http
 TEST_EXECUTABLE=test-c-http
 
 # Files needed only by LLC executable
-LCC_SRCS=main.c 
+LCC_SRCS=main.c lib/hashtable.c
 
 # Files required by unit tests & LCC executable
 SHRD_SRCS=
