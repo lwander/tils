@@ -24,7 +24,7 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include <lib/hashtable.h>
+#include <routes.h>
 
 #define HTTP_PORT (80)
 #define NUM_THREADS (4)
@@ -60,11 +60,12 @@ int read_word(char *ibuf, int ibuf_len, char *obuf, int obuf_len,
         int word_start) {
     int len = 0;
     int i = word_start;
-    while (!isspace((int)ibuf[i]) && i < ibuf_len && len < obuf_len) {
+    while (!isspace((int)ibuf[i]) && i < ibuf_len && len < obuf_len - 1) {
         obuf[len] = ibuf[i];
         i++;
         len++;
     }
+    obuf[len] = '\0';
     return len;
 }
 
@@ -122,7 +123,7 @@ http_request_t request_type(char *request, int request_len) {
  */
 void send_to_client(int client_fd, char *msg, ...) {
     va_list ap;
-    char buf[1 << 8];
+    char buf[REQUEST_BUF_SIZE + 1];
 
     va_start(ap, msg);
     vsnprintf(buf, sizeof(buf), msg, ap);
@@ -136,14 +137,62 @@ void send_to_client(int client_fd, char *msg, ...) {
  *
  * @param client_fd The client being communicated with
  */
-void header_unimplemented(int client_fd) {
+void serve_unimplemented(int client_fd) {
     send_to_client(client_fd, "HTTP/1.0 501 Method Not Implemented\r\n");
     send_to_client(client_fd, SERVER_STRING);
     send_to_client(client_fd, "Content-Type: text/html\r\n");
     send_to_client(client_fd, "\r\n");
     send_to_client(client_fd, "<html><head><title>Whoops</title></head>\r\n");
-    send_to_client(client_fd, "<body>Method type not yet supported...</body>\r\n");
+    send_to_client(client_fd, "<body>Method type not supported :(</body>\r\n");
     send_to_client(client_fd, "</html>\r\n");
+}
+
+/**
+ * @brief Send the unimplemented header to the client
+ *
+ * @param client_fd The client being communicated with
+ */
+void serve_not_found(int client_fd) {
+    send_to_client(client_fd, "HTTP/1.0 404 Not Found\r\n");
+    send_to_client(client_fd, SERVER_STRING);
+    send_to_client(client_fd, "Content-Type: text/html\r\n");
+    send_to_client(client_fd, "\r\n");
+    send_to_client(client_fd, "<html><head><title>Whoops</title></head>\r\n");
+    send_to_client(client_fd, "<body>Resource not found :(</body>\r\n");
+    send_to_client(client_fd, "</html>\r\n");
+}
+
+void serve_file(int client_fd, FILE *file) {
+    send_to_client(client_fd, "HTTP/1.0 404 Not Found\r\n");
+    send_to_client(client_fd, SERVER_STRING);
+    send_to_client(client_fd, "Content-Type: text/html\r\n");
+    send_to_client(client_fd, "\r\n");
+
+    char buf[REQUEST_BUF_SIZE];
+    do {
+        fgets(buf, sizeof(buf), file);
+        send_to_client(client_fd, buf);
+    } while (!feof(file));
+}
+
+void serve_resource(int client_fd, http_request_t http_request, char *resource) {
+    if (http_request != GET) {
+        serve_unimplemented(client_fd);
+        return;
+    }
+
+    char *translate_resource;
+    FILE *file = NULL;
+
+    if (lookup_route(resource + 1, &translate_resource) == 0)
+        file = fopen(translate_resource, "r");
+    else
+        file = fopen(resource + 1, "r"); // Plus one to avoid "/" prefix
+
+    if (file == NULL)
+        serve_not_found(client_fd);
+    else 
+        serve_file(client_fd, file);
 }
 
 /**
@@ -154,6 +203,7 @@ void header_unimplemented(int client_fd) {
 void accept_request(int client_fd) {
     char request[REQUEST_BUF_SIZE];
     char word[WORD_BUF_SIZE];
+    char resource[WORD_BUF_SIZE];
     int request_len = 0;
     int index = 0;
     int word_len = 0;
@@ -167,13 +217,11 @@ void accept_request(int client_fd) {
     word_len = read_word(request, REQUEST_BUF_SIZE, word, WORD_BUF_SIZE, index);
     http_request = request_type(word, word_len);
 
-    if (http_request != GET) {
-        header_unimplemented(client_fd);
-        return;
-    }
-
     index = next_word(request, request_len, index + word_len);
+    word_len = read_word(request, REQUEST_BUF_SIZE, resource, WORD_BUF_SIZE,
+            index);
 
+    serve_resource(client_fd, http_request, resource);
     return;
 }
 
@@ -207,12 +255,13 @@ void *handle_connections(void *server_fd) {
  */
 int init_server() {
     struct sockaddr_in ip4server;
+    int server_fd = 0;
+
     ip4server.sin_family = AF_INET; /* Address family internet */
     ip4server.sin_port = htons(HTTP_PORT); /* Bind to port 80 */
     ip4server.sin_addr.s_addr = htonl(INADDR_ANY);  /* Bind to any interface */
 
     /* Get a file descriptor for our socket */
-    int server_fd = 0;
     if ((server_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
         fprintf(stderr, "Unable to create socket (errno %d)\n", errno);
         goto fail;
@@ -243,12 +292,26 @@ fail:
 
 int main(int argc, char *argv[]) {
     pthread_t threads[NUM_THREADS];
+
+    fprintf(stdout, "Building routes... ");
+    if (init_routes() < 0) {
+        fprintf(stdout, "failed.\n");
+        goto cleanup_socket;
+    }
+    if (add_route("", "html/index.html") < 0) {
+        fprintf(stdout, "failed.\n");
+        goto cleanup_socket;
+    }
+
+    fprintf(stdout, "done.\n");
+
     fprintf(stdout, "Opening connection... ");
     int server_fd = 0;
     if ((server_fd = init_server()) < 0) {
+        fprintf(stdout, "failed.\n");
         return -1;
     } else {
-        printf("done.\n");
+        fprintf(stdout, "done.\n");
     }
 
     for (int i = 0; i < NUM_THREADS; i++)
@@ -258,6 +321,7 @@ int main(int argc, char *argv[]) {
     while (1) {
     }
 
+cleanup_socket:
     close(server_fd);
     return 0;
 }

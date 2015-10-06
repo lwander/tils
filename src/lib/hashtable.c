@@ -97,6 +97,7 @@ int htable_insert(htable_t *ht, char *key, void *value) {
     (*hnode_p)->key[nlen] = '\0';
 
     (*hnode_p)->value = value;
+
     (*hnode_p)->next = NULL;
 
     return 0;

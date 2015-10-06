@@ -13,10 +13,10 @@ EXECUTABLE=c-http
 
 TEST_EXECUTABLE=test-c-http
 
-# Files needed only by LLC executable
-LCC_SRCS=main.c lib/hashtable.c
+# Files needed only by c-http executable
+LCC_SRCS=main.c lib/hashtable.c routes.c
 
-# Files required by unit tests & LCC executable
+# Files required by unit tests & c-http executable
 SHRD_SRCS=
 
 # Files required only by unit tests
