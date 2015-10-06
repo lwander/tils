@@ -12,7 +12,7 @@
 #define MAX(res, a, b) \
    do { __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
-     res = (_a > _b ? _a : _b); } while (0);
+     res = (_a > _b ? _a : _b); } while (0)
 
 #define MIN(res, a, b) \
    do { __typeof__ (a) _a = (a); \

@@ -163,7 +163,7 @@ int htable_delete(htable_t *ht, char *key, void **value) {
 
         hnode_p = &(*hnode_p)->next;
     }
-int
+
     return -1;
 }
 
