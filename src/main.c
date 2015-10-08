@@ -201,15 +201,11 @@ void serve_resource(int client_fd, http_request_t http_request, char *resource) 
     char *translate_resource;
     FILE *file = NULL;
 
-    if (lookup_route(resource + 1, &translate_resource) == 0)
-        file = fopen(translate_resource, "r");
-    else
-        file = fopen(resource + 1, "r"); // Plus one to avoid "/" prefix
-
-    if (file == NULL)
-        serve_not_found(client_fd);
-    else 
+    if (lookup_route(resource, &translate_resource) == 0 && 
+        (file = fopen(translate_resource, "r")) != NULL)
         serve_file(client_fd, file);
+    else
+        serve_not_found(client_fd);
 }
 
 /**
@@ -315,7 +311,7 @@ int main(int argc, char *argv[]) {
         fprintf(stdout, "failed.\n");
         goto cleanup_socket;
     }
-    if (add_route("", "html/index.html") < 0) {
+    if (add_route("/", "html/index.html") < 0) {
         fprintf(stdout, "failed.\n");
         goto cleanup_socket;
     }
