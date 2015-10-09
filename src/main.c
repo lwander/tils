@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
+#include <signal.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -68,6 +69,12 @@ typedef enum {
     JS,
     TEXT
 } content_t;
+
+void sigint_handler(int client_fd) {
+    fprintf(stdout, "Shutting down `gracefully'\n");
+    close(client_fd);
+    exit(-1);
+}
 
 /**
  * @brief Read a whitespace delinated word out of ibuf and into obuf.
@@ -369,6 +376,10 @@ int main(int argc, char *argv[]) {
     pthread_t threads[NUM_THREADS];
     int server_fd = 0;
     int res = 0;
+
+    struct sigaction sigact;
+    sigact.sa_handler = sigint_handler;
+    sigaction(SIGINT, &sigact, NULL);
 
     fprintf(stdout, "Building routes... ");
     if (init_routes() < 0) {
