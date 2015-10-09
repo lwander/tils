@@ -27,6 +27,7 @@
 #define _ROUTES_H_
 
 int init_routes();
+void cleanup_routes();
 int add_route(char *source, char *dest);
 int lookup_route(char *source, char **dest);
 

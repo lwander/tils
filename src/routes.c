@@ -55,3 +55,10 @@ int add_route(char *source, char *dest) {
 int lookup_route(char *source, char **dest) {
     return htable_lookup(_routes, source, (void **)dest);
 }
+
+/**
+ * @brief free all route resources
+ */
+void cleanup_routes() {
+    htable_free(_routes, NULL);
+}

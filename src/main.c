@@ -62,6 +62,13 @@ typedef enum {
     UNKNOWN
 } http_request_t;
 
+typedef enum {
+    HTML,
+    CSS,
+    JS,
+    TEXT
+} content_t;
+
 /**
  * @brief Read a whitespace delinated word out of ibuf and into obuf.
  *
@@ -150,6 +157,58 @@ void send_to_client(int client_fd, char *msg, ...) {
 }
 
 /**
+ * @brief Inform the client of the content type they are receiving.
+ *
+ * @param client_fd The client file descriptor.
+ * @param content_type The content type being sent.
+ */
+void serve_content_type(int client_fd, content_t content_type) {
+    switch (content_type) {
+        case HTML:
+            send_to_client(client_fd, "Content-Type: text/html\r\n");
+            break;
+        case JS: 
+            send_to_client(client_fd, "Content-Type: application/javascript\r\n");
+            break;
+        case CSS: 
+            send_to_client(client_fd, "Content-Type: text/css\r\n");
+            break;
+        case TEXT: 
+            send_to_client(client_fd, "Content-Type: text\r\n");
+            break;
+        default: 
+            send_to_client(client_fd, "Content-Type: default\r\n");
+            break;
+    }
+}
+
+/**
+ * @brief Get the content type by filename extension.
+ *
+ * @param filename The filename being examined.
+ * @param filename_len The length of the filename in question.
+ *
+ * @return The content filetype - TEXT if unsure
+ */
+content_t get_content_type(char *filename, int filename_len) {
+    int p_ind = filename_len - 1;
+    while (p_ind > 0 && filename[p_ind] != '.')
+        p_ind--;
+
+    p_ind += 1;
+
+    if (strncmp("html", filename + p_ind, filename_len - p_ind)) {
+        return HTML;
+    } else if (strncmp("css", filename + p_ind, filename_len - p_ind)) {
+        return CSS;
+    } else if (strncmp("js", filename + p_ind, filename_len - p_ind)) {
+        return JS;
+    } else {
+        return TEXT;
+    }
+}
+
+/**
  * @brief Send the unimplemented header to the client
  *
  * @param client_fd The client being communicated with
@@ -157,7 +216,7 @@ void send_to_client(int client_fd, char *msg, ...) {
 void serve_unimplemented(int client_fd) {
     send_to_client(client_fd, "HTTP/1.0 501 Method Not Implemented\r\n");
     send_to_client(client_fd, SERVER_STRING);
-    send_to_client(client_fd, "Content-Type: text/html\r\n");
+    serve_content_type(client_fd, HTML);
     send_to_client(client_fd, "\r\n");
     send_to_client(client_fd, "<html><head><title>Whoops</title></head>\r\n");
     send_to_client(client_fd, "<body>Method type not supported :(</body>\r\n");
@@ -172,22 +231,23 @@ void serve_unimplemented(int client_fd) {
 void serve_not_found(int client_fd) {
     send_to_client(client_fd, "HTTP/1.0 404 Not Found\r\n");
     send_to_client(client_fd, SERVER_STRING);
-    send_to_client(client_fd, "Content-Type: text/html\r\n");
+    serve_content_type(client_fd, HTML);
     send_to_client(client_fd, "\r\n");
     send_to_client(client_fd, "<html><head><title>Whoops</title></head>\r\n");
     send_to_client(client_fd, "<body>Resource not found :(</body>\r\n");
     send_to_client(client_fd, "</html>\r\n");
 }
 
-void serve_file(int client_fd, FILE *file) {
-    send_to_client(client_fd, "HTTP/1.0 404 Not Found\r\n");
+void serve_file(int client_fd, FILE *file, content_t content_type) {
+    send_to_client(client_fd, "HTTP/1.0 200 OK\r\n");
     send_to_client(client_fd, SERVER_STRING);
-    send_to_client(client_fd, "Content-Type: text/html\r\n");
+    serve_content_type(client_fd, content_type);
     send_to_client(client_fd, "\r\n");
 
     char buf[REQUEST_BUF_SIZE];
     do {
         fgets(buf, sizeof(buf), file);
+        fprintf(stdout, "%s", buf);
         send_to_client(client_fd, buf);
     } while (!feof(file));
 }
@@ -203,7 +263,8 @@ void serve_resource(int client_fd, http_request_t http_request, char *resource) 
 
     if (lookup_route(resource, &translate_resource) == 0 && 
         (file = fopen(translate_resource, "r")) != NULL)
-        serve_file(client_fd, file);
+        serve_file(client_fd, file, 
+                get_content_type(resource, strlen(resource)));
     else
         serve_not_found(client_fd);
 }
@@ -231,6 +292,7 @@ void accept_request(int client_fd) {
     http_request = request_type(word, word_len);
 
     index = next_word(request, request_len, index + word_len);
+    fprintf(stdout, "request = %s\n", request);
     word_len = read_word(request, REQUEST_BUF_SIZE, resource, WORD_BUF_SIZE,
             index);
 
@@ -305,24 +367,33 @@ fail:
 
 int main(int argc, char *argv[]) {
     pthread_t threads[NUM_THREADS];
+    int server_fd = 0;
+    int res = 0;
 
     fprintf(stdout, "Building routes... ");
     if (init_routes() < 0) {
         fprintf(stdout, "failed.\n");
-        goto cleanup_socket;
+        res = -1;
+        goto cleanup_routes;
     }
-    if (add_route("/", "html/index.html") < 0) {
+    else if (add_route("/", "html/index.html") < 0) {
         fprintf(stdout, "failed.\n");
-        goto cleanup_socket;
+        res = -1;
+        goto cleanup_routes;
     }
-
-    fprintf(stdout, "done.\n");
+    else if (add_route("/common.css", "html/common.css") < 0) {
+        fprintf(stdout, "failed.\n");
+        res = -1;
+        goto cleanup_routes;
+    } else {
+        fprintf(stdout, "done.\n");
+    }
 
     fprintf(stdout, "Opening connection... ");
-    int server_fd = 0;
     if ((server_fd = init_server()) < 0) {
         fprintf(stdout, "failed.\n");
-        return -1;
+        res = -1;
+        goto cleanup_routes;
     } else {
         fprintf(stdout, "done.\n");
     }
@@ -334,7 +405,10 @@ int main(int argc, char *argv[]) {
     while (1) {
     }
 
-cleanup_socket:
     close(server_fd);
-    return 0;
+
+cleanup_routes:
+    cleanup_routes();
+
+    return res;
 }
