@@ -204,11 +204,11 @@ content_t get_content_type(char *filename, int filename_len) {
 
     p_ind += 1;
 
-    if (strncmp("html", filename + p_ind, filename_len - p_ind)) {
+    if (strncmp("html", filename + p_ind, filename_len - p_ind) == 0) {
         return HTML;
-    } else if (strncmp("css", filename + p_ind, filename_len - p_ind)) {
+    } else if (strncmp("css", filename + p_ind, filename_len - p_ind) == 0) {
         return CSS;
-    } else if (strncmp("js", filename + p_ind, filename_len - p_ind)) {
+    } else if (strncmp("js", filename + p_ind, filename_len - p_ind) == 0) {
         return JS;
     } else {
         return TEXT;
@@ -245,18 +245,16 @@ void serve_not_found(int client_fd) {
     send_to_client(client_fd, "</html>\r\n");
 }
 
-void serve_file(int client_fd, FILE *file, content_t content_type) {
+void serve_file(int client_fd, FILE *file, char *filename) {
     send_to_client(client_fd, "HTTP/1.0 200 OK\r\n");
     send_to_client(client_fd, SERVER_STRING);
-    serve_content_type(client_fd, content_type);
+    serve_content_type(client_fd, get_content_type(filename, strlen(filename)));
     send_to_client(client_fd, "\r\n");
 
     char buf[REQUEST_BUF_SIZE];
-    do {
-        fgets(buf, sizeof(buf), file);
-        fprintf(stdout, "%s", buf);
+    while (fgets(buf, sizeof(buf), file) != NULL) {
         send_to_client(client_fd, buf);
-    } while (!feof(file));
+    }
 }
 
 void serve_resource(int client_fd, http_request_t http_request, char *resource) {
@@ -270,8 +268,7 @@ void serve_resource(int client_fd, http_request_t http_request, char *resource) 
 
     if (lookup_route(resource, &translate_resource) == 0 && 
         (file = fopen(translate_resource, "r")) != NULL)
-        serve_file(client_fd, file, 
-                get_content_type(resource, strlen(resource)));
+        serve_file(client_fd, file, resource);
     else
         serve_not_found(client_fd);
 }
