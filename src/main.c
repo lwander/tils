@@ -44,7 +44,7 @@
 
 #include <routes.h>
 
-#define HTTP_PORT (8000)
+#define HTTP_PORT (80)
 #define NUM_THREADS (4)
 #define REQUEST_BUF_SIZE (1 << 10)
 #define WORD_BUF_SIZE (1 << 7)
