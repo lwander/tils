@@ -338,14 +338,22 @@ void *handle_connections(void *server_fd) {
 int init_server() {
     struct sockaddr_in ip4server;
     int server_fd = 0;
+    int optval = 1;
+    socklen_t optlen = sizeof(optval);
 
     ip4server.sin_family = AF_INET; /* Address family internet */
     ip4server.sin_port = htons(HTTP_PORT); /* Bind to port 80 */
     ip4server.sin_addr.s_addr = htonl(INADDR_ANY);  /* Bind to any interface */
 
     /* Get a file descriptor for our socket */
-    if ((server_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+    if ((server_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         fprintf(stderr, "Unable to create socket (errno %d)\n", errno);
+        goto fail;
+    }
+
+    /* Set keepalive status */
+    if (setsockopt(server_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen) < 0) {
+        fprintf(stderr, "Unable to set keepalive to %d (errno %d)\n", optval, errno);
         goto fail;
     }
 
