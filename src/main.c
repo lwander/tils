@@ -10,7 +10,7 @@
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *      GNU General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU General Public License
  *      along with c-http.  If not, see <http://www.gnu.org/licenses/>
  */
@@ -172,18 +172,18 @@ void send_to_client(int client_fd, char *msg, ...) {
 void serve_content_type(int client_fd, content_t content_type) {
     switch (content_type) {
         case HTML:
-            send_to_client(client_fd, "Content-Type: text/html\r\n");
+            send_to_client(client_fd, "Content-Type: text/html; charset=utf8\r\n");
             break;
-        case JS: 
+        case JS:
             send_to_client(client_fd, "Content-Type: application/javascript\r\n");
             break;
-        case CSS: 
+        case CSS:
             send_to_client(client_fd, "Content-Type: text/css\r\n");
             break;
-        case TEXT: 
+        case TEXT:
             send_to_client(client_fd, "Content-Type: text\r\n");
             break;
-        default: 
+        default:
             send_to_client(client_fd, "Content-Type: default\r\n");
             break;
     }
@@ -221,7 +221,7 @@ content_t get_content_type(char *filename, int filename_len) {
  * @param client_fd The client being communicated with
  */
 void serve_unimplemented(int client_fd) {
-    send_to_client(client_fd, "HTTP/1.0 501 Method Not Implemented\r\n");
+    send_to_client(client_fd, "HTTP/1.1 501 Method Not Implemented\r\n");
     send_to_client(client_fd, SERVER_STRING);
     serve_content_type(client_fd, HTML);
     send_to_client(client_fd, "\r\n");
@@ -236,7 +236,7 @@ void serve_unimplemented(int client_fd) {
  * @param client_fd The client being communicated with
  */
 void serve_not_found(int client_fd) {
-    send_to_client(client_fd, "HTTP/1.0 404 Not Found\r\n");
+    send_to_client(client_fd, "HTTP/1.1 404 Not Found\r\n");
     send_to_client(client_fd, SERVER_STRING);
     serve_content_type(client_fd, HTML);
     send_to_client(client_fd, "\r\n");
@@ -246,15 +246,27 @@ void serve_not_found(int client_fd) {
 }
 
 void serve_file(int client_fd, FILE *file, char *filename) {
-    send_to_client(client_fd, "HTTP/1.0 200 OK\r\n");
+    send_to_client(client_fd, "HTTP/1.1 200 OK\r\n");
     send_to_client(client_fd, SERVER_STRING);
     serve_content_type(client_fd, get_content_type(filename, strlen(filename)));
+
+    /* Get Content-length */
+    if (fseek(file, 0, SEEK_END) < 0)
+        return;
+
+    int size = ftell(file);
+    send_to_client(client_fd, "Content-Length: %d\r\n", size);
+    fprintf(stdout, "Content-Length: %d", size);
+
+    /* Jump back to beginning of file for reading */
+    if (fseek(file, 0, SEEK_SET) < 0)
+        return;
+
     send_to_client(client_fd, "\r\n");
 
     char buf[REQUEST_BUF_SIZE];
-    while (fgets(buf, sizeof(buf), file) != NULL) {
+    while (fgets(buf, REQUEST_BUF_SIZE, file) != NULL)
         send_to_client(client_fd, buf);
-    }
 }
 
 void serve_resource(int client_fd, http_request_t http_request, char *resource) {
@@ -266,11 +278,13 @@ void serve_resource(int client_fd, http_request_t http_request, char *resource) 
     char *translate_resource;
     FILE *file = NULL;
 
-    if (lookup_route(resource, &translate_resource) == 0 && 
+    if (lookup_route(resource, &translate_resource) == 0 &&
         (file = fopen(translate_resource, "r")) != NULL)
         serve_file(client_fd, file, resource);
     else
         serve_not_found(client_fd);
+
+    fprintf(stdout, "served!\n");
 }
 
 /**
@@ -316,13 +330,24 @@ void accept_request(int client_fd) {
 void *handle_connections(void *server_fd) {
     struct sockaddr_in ip4client;
     unsigned int ip4client_len = sizeof(ip4client);
-    int client_fd;
+    int client_fd = 0;
+    int optval = 1;
+    socklen_t optlen = sizeof(optval);
+
     while (1) {
         if ((client_fd = accept(*((int *)server_fd),
                         (struct sockaddr *)&ip4client, &ip4client_len)) < 0) {
             fprintf(stderr, "Error, connection dropped (errno %d)", errno);
         } else {
-            accept_request(client_fd);
+            /* Set keepalive status */
+            if (setsockopt(client_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen) < 0) {
+                fprintf(stderr, "Unable to set keepalive to %d (errno %d)\n", optval, errno);
+            } else {
+                while (1) {
+                    accept_request(client_fd);
+                }
+
+            }
             close(client_fd);
         }
     }
