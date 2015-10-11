@@ -1,3 +1,45 @@
 body {
-    background-color: blue;
+    margin: 2rem 0 5rem
 }
+
+h1,
+h2 {
+    margin: 0 0 0.5rem -0.1rem
+}
+
+.container {
+    font-family: "Roboto", sans-serif;
+    font-size: 20px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    max-width: 40rem;
+    padding: 0 1rem;
+    margin: 0 auto;
+}
+
+.container h1 {
+    padding-top: 1em;
+    font-size: 2em;
+    font-weight: 900;
+    text-align: center;
+}
+
+.container a:visited,
+.container a:link,
+.container a:active,
+.container a:hover {
+    outline: 0;
+    color: black;
+    background-color: transparent;
+}
+
+.container h2 {
+    font-size 1em;
+    font-weight: 400;
+    text-align: center;
+}
+
+.container p {
+    padding-top: 2cm;
+}
+
