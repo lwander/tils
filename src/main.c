@@ -44,7 +44,7 @@
 
 #include <routes.h>
 
-#define HTTP_PORT (80)
+#define HTTP_PORT (8000)
 #define NUM_THREADS (4)
 #define REQUEST_BUF_SIZE (1 << 10)
 #define WORD_BUF_SIZE (1 << 7)
@@ -91,7 +91,7 @@ int read_word(char *ibuf, int ibuf_len, char *obuf, int obuf_len,
         int word_start) {
     int len = 0;
     int i = word_start;
-    while (!isspace((int)ibuf[i]) && i < ibuf_len && len < obuf_len - 1) {
+    while (i < ibuf_len && len < obuf_len - 1 && !isspace((int)ibuf[i])) {
         obuf[len] = ibuf[i];
         i++;
         len++;
@@ -110,7 +110,7 @@ int read_word(char *ibuf, int ibuf_len, char *obuf, int obuf_len,
  * @return The index of the first non-whitespace charcter after index.
  */
 int next_word(char *buf, int buf_len, int index) {
-    while (isspace((int)buf[index]) && index < buf_len)
+    while (index < buf_len && isspace((int)buf[index]))
         index++;
     return index;
 }
@@ -289,6 +289,10 @@ void accept_request(int client_fd) {
 
     /* First grab the full HTTP request */
     request_len = read(client_fd, request, REQUEST_BUF_SIZE);
+    fprintf(stdout, "request_len = %d\n", request_len);
+
+    if (request_len == 0)
+        return;
 
     /* Start parsing it word by word */
     index = next_word(request, request_len, 0);
@@ -296,7 +300,6 @@ void accept_request(int client_fd) {
     http_request = request_type(word, word_len);
 
     index = next_word(request, request_len, index + word_len);
-    fprintf(stdout, "request = %s\n", request);
     word_len = read_word(request, REQUEST_BUF_SIZE, resource, WORD_BUF_SIZE,
             index);
 
@@ -418,5 +421,6 @@ int main(int argc, char *argv[]) {
 cleanup_routes:
     cleanup_routes();
 
+    fprintf(stdout, "Goodbye (errno %d)\n", errno);
     return res;
 }
