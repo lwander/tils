@@ -16,7 +16,7 @@
  */
 
 /**
- * @file util.h
+ * @file inc/util.h
  *
  * @brief Basic utility functions / macros
  *

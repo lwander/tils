@@ -16,19 +16,16 @@
  */
 
 /**
- * @file inc/routes.h
+ * @file src/worker_thread.c
  *
- * @author Lars Wander (lars.wander@gmail.com)
+ * @brief Worker thread implemention
  *
- * @brief Routing definitions go here
+ * The idea is to minimize context switches. The way this is done is to 
+ * dedicate 1 thread per core, and to have each thread manage it's own set
+ * of connections - accepting, reading, and writing are all done on each
+ * thread.
+ *
+ * @author Lars Wander
  */
 
-#ifndef _ROUTES_H_
-#define _ROUTES_H_
 
-int init_routes();
-void cleanup_routes();
-int add_route(char *source, char *dest);
-int lookup_route(char *source, char **dest);
-
-#endif /* _ROUTES_H_ */

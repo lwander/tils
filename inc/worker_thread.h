@@ -16,19 +16,11 @@
  */
 
 /**
- * @file inc/routes.h
+ * @file inc/worker_thread.h
+ *
+ * @brief Declarations go here - see src/worker_thread.c for more info.
  *
  * @author Lars Wander (lars.wander@gmail.com)
- *
- * @brief Routing definitions go here
  */
 
-#ifndef _ROUTES_H_
-#define _ROUTES_H_
 
-int init_routes();
-void cleanup_routes();
-int add_route(char *source, char *dest);
-int lookup_route(char *source, char **dest);
-
-#endif /* _ROUTES_H_ */
