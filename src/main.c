@@ -43,11 +43,8 @@
 #include <errno.h>
 
 #include <routes.h>
-
-#define HTTP_PORT (80)
-#define NUM_THREADS (4)
-#define REQUEST_BUF_SIZE (1 << 10)
-#define WORD_BUF_SIZE (1 << 7)
+#include <util.h>
+#include <socket_util.h>
 
 #define SERVER_STRING "Server: lwander-c-http/0.0.1\r\n"
 
@@ -288,83 +285,13 @@ void serve_resource(int client_fd, http_request_t http_request, char *resource) 
 }
 
 /**
- * @brief Process the type of HTTP request, and respond accordingly.
- *
- * @param client_fd File descriptor of client sending data.
- */
-void accept_request(int client_fd) {
-    char request[REQUEST_BUF_SIZE];
-    char word[WORD_BUF_SIZE];
-    char resource[WORD_BUF_SIZE];
-    int request_len = 0;
-    int index = 0;
-    int word_len = 0;
-    http_request_t http_request;
-
-    /* First grab the full HTTP request */
-    request_len = read(client_fd, request, REQUEST_BUF_SIZE);
-    fprintf(stdout, "request_len = %d\n", request_len);
-
-    if (request_len == 0)
-        return;
-
-    /* Start parsing it word by word */
-    index = next_word(request, request_len, 0);
-    word_len = read_word(request, REQUEST_BUF_SIZE, word, WORD_BUF_SIZE, index);
-    http_request = request_type(word, word_len);
-
-    index = next_word(request, request_len, index + word_len);
-    word_len = read_word(request, REQUEST_BUF_SIZE, resource, WORD_BUF_SIZE,
-            index);
-
-    serve_resource(client_fd, http_request, resource);
-    return;
-}
-
-/**
- * @brief Wait to be connected to a client, then handle the client's request,
- *        and repeat.
- *
- * @param server_fd The socket fd to accept connections on
- */
-void *handle_connections(void *server_fd) {
-    struct sockaddr_in ip4client;
-    unsigned int ip4client_len = sizeof(ip4client);
-    int client_fd = 0;
-    int optval = 1;
-    socklen_t optlen = sizeof(optval);
-
-    while (1) {
-        if ((client_fd = accept(*((int *)server_fd),
-                        (struct sockaddr *)&ip4client, &ip4client_len)) < 0) {
-            fprintf(stderr, "Error, connection dropped (errno %d)", errno);
-        } else {
-            /* Set keepalive status */
-            if (setsockopt(client_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen) < 0) {
-                fprintf(stderr, "Unable to set keepalive to %d (errno %d)\n", optval, errno);
-            } else {
-                while (1) {
-                    accept_request(client_fd);
-                }
-
-            }
-            close(client_fd);
-        }
-    }
-
-    return NULL;
-}
-
-/**
  * @brief Bind server to HTTP TCP socket.
  *
- * @return -1 on error, the socket file descriptor otherwise.
+ * @return -1 on error, the server file descriptor otherwise.
  */
 int init_server() {
     struct sockaddr_in ip4server;
     int server_fd = 0;
-    int optval = 1;
-    socklen_t optlen = sizeof(optval);
 
     ip4server.sin_family = AF_INET; /* Address family internet */
     ip4server.sin_port = htons(HTTP_PORT); /* Bind to port 80 */
@@ -376,9 +303,11 @@ int init_server() {
         goto fail;
     }
 
-    /* Set keepalive status */
-    if (setsockopt(server_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen) < 0) {
-        fprintf(stderr, "Unable to set keepalive to %d (errno %d)\n", optval, errno);
+    if (socket_keepalive(server_fd) < 0) {
+        goto fail;
+    }
+
+    if (socket_nonblocking(server_fd) < 0) {
         goto fail;
     }
 
