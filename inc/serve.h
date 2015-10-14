@@ -10,36 +10,50 @@
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- * 
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with c-http.  If not, see <http://www.gnu.org/licenses/>
  */
 
 /**
- * @file inc/worker_thread.h
+ * @file inc/serve.c
  *
- * @brief Declarations go here - see src/worker_thread.c for more info.
+ * @brief Serving tools implementation
  *
- * @author Lars Wander (lars.wander@gmail.com)
+ * @author Lars Wander
  */
 
-#ifndef _WORKER_THREAD_H_
-#define _WORKER_THREAD_H_
+#define SERVER_STRING "Server: lwander-c-http/0.0.1\r\n"
 
-/* We typedef these to allow the implementor to pick an implementation */
-struct _worker_thread;
-struct _connection;
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <unistd.h>
+#include <string.h>
+#include <ctype.h>
 
-typedef struct _worker_thread wt_t;
-typedef struct _connection conn_t;
+#include <util.h>
 
-conn_t *wt_pop_conn(wt_t *self);
-void wt_push_conn(wt_t *self, conn_t *conn);
+#ifndef _SERVE_H_
+#define _SERVE_H_
 
-int conn_is_alive(conn_t *conn);
-conn_t *new_conn(int client_fd);
-void revitalize_conn(conn_t *conn);
+typedef enum {
+    GET,
+    POST,
+    PUT,
+    HEAD,
+    OPTIONS,
+    DELETE,
+    TRACE,
+    CONNECT,
+    UNKNOWN
+} http_request_t;
 
-int start_thread_pool(int server_fd);
+typedef enum {
+    HTML,
+    CSS,
+    JS,
+    TEXT
+} content_t;
 
-#endif /* _WORKER_THREAD_H_ */
+#endif /* _SERVE_H_ */

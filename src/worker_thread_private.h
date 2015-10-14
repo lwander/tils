@@ -32,9 +32,12 @@
 
 #define THREAD_COUNT (4)
 
-typedef struct {
-    /*
-    conn_t *next;
+typedef struct conn {
+    /* Linked list of connections */
+    struct conn *next;
+
+    /* Last alive time (used for keepalive) */
+    double last_alive;
 
     int client_fd;
 } conn_t;
@@ -50,8 +53,11 @@ typedef struct {
      */
     pthread_t thread __attribute__((aligned(CACHE_LINE_SIZE)));
 
-    /* List of connection here */
+    /* List of managed connections */
     conn_t *conns;
+    
+    /* Last managed connection here */
+    conn_t *last_conn;
 
     /* File descriptor to listen to new connections on */
     int server_fd;
