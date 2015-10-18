@@ -157,6 +157,7 @@ void accept_request(conn_t *conn) {
 
     /* First grab the full HTTP request */
     request_len = read(client_fd, request, REQUEST_BUF_SIZE);
+    fprintf(stdout, "::%d\n%s", (int)pthread_self(), request);
 
     if (request_len == 0)
         return;
@@ -169,9 +170,13 @@ void accept_request(conn_t *conn) {
     word_len = read_word(request, REQUEST_BUF_SIZE, word, WORD_BUF_SIZE, index);
     http_request = request_type(word, word_len);
 
+    fprintf(stdout, "-- type -- %s\n", word);
+
     index = next_word(request, request_len, index + word_len);
     word_len = read_word(request, REQUEST_BUF_SIZE, resource, WORD_BUF_SIZE,
             index);
+
+    fprintf(stdout, "-- resource -- %s\n", word);
 
     serve_resource(client_fd, http_request, resource);
     return;

@@ -215,7 +215,6 @@ void serve_file(int client_fd, FILE *file, char *filename) {
 
     int size = ftell(file);
     send_to_client(client_fd, "Content-Length: %d\r\n", size);
-    fprintf(stdout, "Content-Length: %d", size);
 
     /* Jump back to beginning of file for reading */
     if (fseek(file, 0, SEEK_SET) < 0)
@@ -242,7 +241,5 @@ void serve_resource(int client_fd, http_request_t http_request, char *resource) 
         serve_file(client_fd, file, resource);
     else
         serve_not_found(client_fd);
-
-    fprintf(stdout, "served!\n");
 }
 
