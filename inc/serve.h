@@ -56,4 +56,11 @@ typedef enum {
     TEXT
 } content_t;
 
+int read_word(char *ibuf, int ibuf_len, char *obuf, int obuf_len,
+        int word_start);
+int next_word(char *buf, int buf_len, int index);
+
+http_request_t request_type(char *request, int request_len);
+void serve_resource(int client_fd, http_request_t http_request, char *resource);
+
 #endif /* _SERVE_H_ */

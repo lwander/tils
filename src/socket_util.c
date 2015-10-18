@@ -26,6 +26,9 @@
 #include <socket_util.h>
 
 #include <stdio.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>

@@ -23,6 +23,18 @@
  * @author Lars Wander
  */
 
+#define _GNU_SOURCE
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <ctype.h>
+
+#include <serve.h>
+#include <routes.h>
+
 /**
  * @brief Read a whitespace delinated word out of ibuf and into obuf.
  *
@@ -34,7 +46,6 @@
  *
  * @return The length of the word that was read.
  */
-
 int read_word(char *ibuf, int ibuf_len, char *obuf, int obuf_len,
         int word_start) {
     int len = 0;

@@ -28,9 +28,12 @@
  * @author Lars Wander
  */
 
+#define _GNU_SOURCE
+
 #include <time.h>
 #include <errno.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -39,9 +42,10 @@
 #include <arpa/inet.h>
 
 #include <socket_util.h>
+#include <serve.h>
 #include "worker_thread_private.h"
 
-static _worker_threads[THREAD_COUNT];
+static wt_t _worker_threads[THREAD_COUNT];
 double _ttl = 600;
 
 /**
@@ -52,7 +56,7 @@ double _ttl = 600;
  * @return The new connection object. NULL on error.
  */
 conn_t *new_conn(int client_fd) {
-    res = calloc(sizeof(conn_t), 1);
+    conn_t *res = calloc(sizeof(conn_t), 1);
     if (res != NULL)  {
         res->client_fd = client_fd;
         res->last_alive = ((double) clock()) / CLOCKS_PER_SEC;
@@ -95,12 +99,12 @@ conn_t *wt_pop_conn(wt_t *self) {
     if (self->conns == NULL)
         return NULL;
 
-    conn_t res = self->conns;
+    conn_t *res = self->conns;
     self->conns = self->conns->next;
 
     /* Did we just pop the only connection? */
     if (self->last_conn == res) {
-        self->last_con = NULL;
+        self->last_conn = NULL;
         self->conns = NULL;
     }
 
@@ -113,7 +117,7 @@ conn_t *wt_pop_conn(wt_t *self) {
  * @param self The worker thread being modified.
  * @param conn The connection being enqueued.
  */
-void *wt_push_connection(wt_t *self, conn_t *conn) {
+void wt_push_conn(wt_t *self, conn_t *conn) {
     if (self->last_conn == NULL) {
         self->last_conn = conn;
         self->conns = conn;
@@ -184,25 +188,25 @@ void *handle_connections(void *_self) {
     struct sockaddr_in ip4client;
     unsigned int ip4client_len = sizeof(ip4client);
     int client_fd = 0;
-    int optval = 1;
-    socklen_t optlen = sizeof(optval);
+    int server_fd = self->server_fd;
+    conn_t *conn = NULL;
 
     /* Alternate between binding new connections and reading from old ones */
     while (1) {
-        if ((client_fd = accept(*((int *)server_fd),
-                        (struct sockaddr *)&ip4client, &ip4client_len)) > 0) {
+        if ((client_fd = accept(server_fd, (struct sockaddr *)&ip4client, 
+                        &ip4client_len)) > 0) {
             socket_keepalive(client_fd);
             socket_nonblocking(client_fd);
-            conn_t *new_conn = new_conn(client_fd);
-            if (new_conn == NULL) {
+            conn = new_conn(client_fd);
+            if (conn == NULL) {
                 close(client_fd);
             } else {
-                accept_request(new_conn);
-                wt_push_conn(self, new_conn);
+                accept_request(conn);
+                wt_push_conn(self, conn);
             }
         }
 
-        conn_t *conn wt_pop_con(self);
+        conn = wt_pop_conn(self);
         if (conn == NULL)
             continue;
 
@@ -228,7 +232,7 @@ void start_thread_pool(int server_fd) {
         _worker_threads[i].server_fd = server_fd;
         _worker_threads[i].conns = NULL;
         _worker_threads[i].last_conn = NULL;
-        pthread_start(&_worker_threads[i].thread, NULL, handle_connections, 
+        pthread_create(&_worker_threads[i].thread, NULL, handle_connections, 
                 (void *)&_worker_threads[i]);
     }
 }
