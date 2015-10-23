@@ -32,6 +32,8 @@
 
 #define THREAD_COUNT (4)
 
+static double _ttl = 600;
+
 typedef struct conn {
     /* Linked list of connections */
     struct conn *next;

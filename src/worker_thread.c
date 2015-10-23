@@ -46,7 +46,6 @@
 #include "worker_thread_private.h"
 
 static wt_t _worker_threads[THREAD_COUNT];
-double _ttl = 600;
 
 /**
  * @brief Initialize a new connection.
@@ -157,7 +156,6 @@ void accept_request(conn_t *conn) {
 
     /* First grab the full HTTP request */
     request_len = read(client_fd, request, REQUEST_BUF_SIZE);
-    //fprintf(stdout, "::%d\n%s", (int)pthread_self(), request);
 
     if (request_len <= 0)
         return;
@@ -170,13 +168,9 @@ void accept_request(conn_t *conn) {
     word_len = read_word(request, REQUEST_BUF_SIZE, word, WORD_BUF_SIZE, index);
     http_request = request_type(word, word_len);
 
-    //fprintf(stdout, "-- type -- %s @ %d\n", word, index);
-
     index = next_word(request, request_len, index + word_len);
     word_len = read_word(request, REQUEST_BUF_SIZE, resource, WORD_BUF_SIZE,
             index);
-
-    //fprintf(stdout, "-- resource -- %s @ %d\n", word, index);
 
     serve_resource(client_fd, http_request, resource);
     return;
@@ -200,7 +194,6 @@ void *handle_connections(void *_self) {
     while (1) {
         if ((client_fd = accept(server_fd, (struct sockaddr *)&ip4client, 
                         &ip4client_len)) > 0) {
-            fprintf(stdout, "client_fd = %d\n", client_fd);
             socket_keepalive(client_fd);
             socket_nonblocking(client_fd);
             conn = new_conn(client_fd);

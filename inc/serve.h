@@ -49,12 +49,10 @@ typedef enum {
     UNKNOWN
 } http_request_t;
 
-typedef enum {
-    HTML,
-    CSS,
-    JS,
-    TEXT
-} content_t;
+#define HTML "text/html; charset=utf8"
+#define CSS "text/css"
+#define JS "application/javascript"
+#define TEXT "text"
 
 int read_word(char *ibuf, int ibuf_len, char *obuf, int obuf_len,
         int word_start);

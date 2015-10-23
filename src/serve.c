@@ -38,6 +38,8 @@
 #include <serve.h>
 #include <routes.h>
 
+#include "serve_private.h"
+
 /**
  * @brief Read a whitespace delinated word out of ibuf and into obuf.
  *
@@ -127,32 +129,6 @@ void send_to_client(int client_fd, char *msg, ...) {
 }
 
 /**
- * @brief Inform the client of the content type they are receiving.
- *
- * @param client_fd The client file descriptor.
- * @param content_type The content type being sent.
- */
-void serve_content_type(int client_fd, content_t content_type) {
-    switch (content_type) {
-        case HTML:
-            send_to_client(client_fd, "Content-Type: text/html; charset=utf8\r\n");
-            break;
-        case JS:
-            send_to_client(client_fd, "Content-Type: application/javascript\r\n");
-            break;
-        case CSS:
-            send_to_client(client_fd, "Content-Type: text/css\r\n");
-            break;
-        case TEXT:
-            send_to_client(client_fd, "Content-Type: text\r\n");
-            break;
-        default:
-            send_to_client(client_fd, "Content-Type: default\r\n");
-            break;
-    }
-}
-
-/**
  * @brief Get the content type by filename extension.
  *
  * @param filename The filename being examined.
@@ -160,7 +136,7 @@ void serve_content_type(int client_fd, content_t content_type) {
  *
  * @return The content filetype - TEXT if unsure
  */
-content_t get_content_type(char *filename, int filename_len) {
+char *get_content_type(char *filename, int filename_len) {
     int p_ind = filename_len - 1;
     while (p_ind > 0 && filename[p_ind] != '.')
         p_ind--;
@@ -184,13 +160,7 @@ content_t get_content_type(char *filename, int filename_len) {
  * @param client_fd The client being communicated with
  */
 void serve_unimplemented(int client_fd) {
-    send_to_client(client_fd, "HTTP/1.1 501 Method Not Implemented\r\n");
-    send_to_client(client_fd, SERVER_STRING);
-    serve_content_type(client_fd, HTML);
-    send_to_client(client_fd, "\r\n");
-    send_to_client(client_fd, "<html><head><title>Whoops</title></head>\r\n");
-    send_to_client(client_fd, "<body>Method type not supported :(</body>\r\n");
-    send_to_client(client_fd, "</html>\r\n");
+    send_to_client(client_fd, (char *)msg_unimplemented);
 }
 
 /**
@@ -199,31 +169,17 @@ void serve_unimplemented(int client_fd) {
  * @param client_fd The client being communicated with
  */
 void serve_not_found(int client_fd) {
-    fprintf(stdout, "not found\n");
-    send_to_client(client_fd, "HTTP/1.1 404 Not Found\r\n");
-    send_to_client(client_fd, SERVER_STRING);
-    serve_content_type(client_fd, HTML);
-    send_to_client(client_fd, "\r\n");
-    send_to_client(client_fd, "<html><head><title>Whoops</title></head>\r\n");
-    send_to_client(client_fd, "<body>Resource not found :(</body>\r\n");
-    send_to_client(client_fd, "</html>\r\n");
+    send_to_client(client_fd, (char *)msg_not_found);
 }
 
-void serve_file(int client_fd, int file_fd, content_t content, int size) {
-    send_to_client(client_fd, "HTTP/1.1 200 OK\r\n");
-    send_to_client(client_fd, SERVER_STRING);
-    send_to_client(client_fd, "Content-Length: %d\r\n", size);
-    serve_content_type(client_fd, content);
-    send_to_client(client_fd, "\r\n");
+void serve_file(int client_fd, int file_fd, char *content_type, int size) {
+    send_to_client(client_fd, (char *)header_file, content_type, size);
 
     char buf[REQUEST_BUF_SIZE];
     int res = 0;
     while ((res = read(file_fd, buf, REQUEST_BUF_SIZE)) > 0) {
-        fprintf(stdout, "*buf = %s\n", buf);
         send_to_client(client_fd, buf);
     }
-    fprintf(stdout, "res - %d (errno = %d)\n", res, errno);
-    fprintf(stdout, "that was easy!\n");
 }
 
 void serve_resource(int client_fd, http_request_t http_request, char *resource) {
@@ -232,20 +188,21 @@ void serve_resource(int client_fd, http_request_t http_request, char *resource) 
         return;
     }
 
-    char *translate_resource;
+    char *remap_resource;
     int file_fd;
     int size;
     struct stat st;
 
-    if (lookup_route(resource, &translate_resource) == 0 &&
-            (file_fd = open(translate_resource, O_RDONLY)) >= 0) {
+    if (lookup_route(resource, &remap_resource) == 0 &&
+            (file_fd = open(remap_resource, O_RDONLY)) >= 0) {
+        fprintf(stdout, "serving %s\n", remap_resource);
         if (fstat(file_fd, &st) < 0) {
             fprintf(stdout, "Error getting file info (errno %d)\n", errno);
         }
-        content_t content = get_content_type(translate_resource, strlen(translate_resource));
+        char *content_type = get_content_type(remap_resource, strlen(remap_resource));
         size = st.st_size;
 
-        serve_file(client_fd, file_fd, content, size);
+        serve_file(client_fd, file_fd, content_type, size);
         close(file_fd);
     } else {
         serve_not_found(client_fd);
