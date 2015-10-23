@@ -12,7 +12,7 @@ h2 {
     font-size: 20px;
     line-height: 1.6;
     word-wrap: break-word;
-    max-width: 40rem;
+    max-width: 50rem;
     padding: 0 1rem;
     margin: 0 auto;
 }
@@ -40,6 +40,29 @@ h2 {
 }
 
 .container p {
-    padding-top: 2cm;
+    font-size: 16px;
+    padding-top: 2em;
 }
 
+.container div.date {
+    color: #aaaaaa;
+    text-align: right;
+    float: right;
+}
+
+.container div.title {
+    color: #aaaaaa;
+    float: left;
+}
+
+.container div.article-head {
+    padding-top: 2cm;
+    clear: both;
+    font-size: 16px;
+}
+
+.container div.page-head {
+    padding-top: 2cm;
+    clear: both;
+    font-size: 16px;
+}
