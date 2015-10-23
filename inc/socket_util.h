@@ -25,3 +25,4 @@
 
 int socket_keepalive(int sock);
 int socket_nonblocking(int sock);
+int socket_blocking(int sock);

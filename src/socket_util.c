@@ -74,3 +74,20 @@ int socket_nonblocking(int sock) {
 
     return 0;
 }
+
+/**
+ * @brief Set socket to not block on accept
+ *
+ * @param sock The socket being modified
+ *
+ * @return 0 on success, < 0 otherwise
+ */
+int socket_blocking(int sock) {
+    if (fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) & ~O_NONBLOCK) < 0) {
+        fprintf(stderr, "Unable set status to non-blocking (errno %d)\n",
+                errno);
+        return -1;
+    }
+
+    return 0;
+}

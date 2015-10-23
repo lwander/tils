@@ -76,7 +76,9 @@ int init_server() {
         goto fail;
     }
 
-    if (socket_nonblocking(server_fd) < 0) {
+    /* At first block, because we don't need to spin waiting for connections
+     * if we know there are none */
+    if (socket_blocking(server_fd) < 0) {
         goto fail;
     }
 
@@ -133,12 +135,6 @@ int main(int argc, char *argv[]) {
 
     fprintf(stdout, "Starting working threads... \n");
     start_thread_pool(server_fd);
-    fprintf(stdout, "done.\n");
-
-    while (1) {
-        /* TODO emulate console here for grabbing server statitics, or 
-         * dedicate this thread to also listen for connections */
-    }
 
     close(server_fd);
 

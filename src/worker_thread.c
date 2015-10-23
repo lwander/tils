@@ -189,6 +189,7 @@ void *handle_connections(void *_self) {
     int client_fd = 0;
     int server_fd = self->server_fd;
     conn_t *conn = NULL;
+    int blocking = 1;
 
     /* Alternate between binding new connections and reading from old ones */
     while (1) {
@@ -203,6 +204,13 @@ void *handle_connections(void *_self) {
                 accept_request(conn);
                 wt_push_conn(self, conn);
             }
+            
+            /* Since there is now a connection, we must juggle listening
+             * and accepting new connections */
+            if (blocking) {
+                socket_nonblocking(server_fd);
+                blocking = 0;
+            }
         }
 
         conn = wt_pop_conn(self);
@@ -210,6 +218,12 @@ void *handle_connections(void *_self) {
             continue;
 
         if (!conn_is_alive(conn)) {
+            /* If this is our only connections, we can don't have to spin 
+             * accepting existing connections anymore */
+            if (self->conns == NULL) {
+                socket_blocking(server_fd);
+                blocking = 1;
+            }
             free_conn(conn);
             continue;
         }
@@ -234,4 +248,10 @@ void start_thread_pool(int server_fd) {
         pthread_create(&_worker_threads[i].thread, NULL, handle_connections, 
                 (void *)&_worker_threads[i]);
     }
+
+    wt_t master;
+    master.server_fd = server_fd;
+    master.conns = NULL;
+    master.last_conn = NULL;
+    handle_connections((void*)&master);
 }
