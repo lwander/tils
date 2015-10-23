@@ -30,7 +30,10 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
 
 #include <serve.h>
 #include <routes.h>
@@ -55,6 +58,7 @@ int read_word(char *ibuf, int ibuf_len, char *obuf, int obuf_len,
         i++;
         len++;
     }
+
     obuf[len] = '\0';
     return len;
 }
@@ -195,6 +199,7 @@ void serve_unimplemented(int client_fd) {
  * @param client_fd The client being communicated with
  */
 void serve_not_found(int client_fd) {
+    fprintf(stdout, "not found\n");
     send_to_client(client_fd, "HTTP/1.1 404 Not Found\r\n");
     send_to_client(client_fd, SERVER_STRING);
     serve_content_type(client_fd, HTML);
@@ -204,27 +209,21 @@ void serve_not_found(int client_fd) {
     send_to_client(client_fd, "</html>\r\n");
 }
 
-void serve_file(int client_fd, FILE *file, char *filename) {
+void serve_file(int client_fd, int file_fd, content_t content, int size) {
     send_to_client(client_fd, "HTTP/1.1 200 OK\r\n");
     send_to_client(client_fd, SERVER_STRING);
-    serve_content_type(client_fd, get_content_type(filename, strlen(filename)));
-
-    /* Get Content-length */
-    if (fseek(file, 0, SEEK_END) < 0)
-        return;
-
-    int size = ftell(file);
     send_to_client(client_fd, "Content-Length: %d\r\n", size);
-
-    /* Jump back to beginning of file for reading */
-    if (fseek(file, 0, SEEK_SET) < 0)
-        return;
-
+    serve_content_type(client_fd, content);
     send_to_client(client_fd, "\r\n");
 
     char buf[REQUEST_BUF_SIZE];
-    while (read(fileno(file), buf, REQUEST_BUF_SIZE) > 0)
+    int res = 0;
+    while ((res = read(file_fd, buf, REQUEST_BUF_SIZE)) > 0) {
+        fprintf(stdout, "*buf = %s\n", buf);
         send_to_client(client_fd, buf);
+    }
+    fprintf(stdout, "res - %d (errno = %d)\n", res, errno);
+    fprintf(stdout, "that was easy!\n");
 }
 
 void serve_resource(int client_fd, http_request_t http_request, char *resource) {
@@ -234,12 +233,22 @@ void serve_resource(int client_fd, http_request_t http_request, char *resource) 
     }
 
     char *translate_resource;
-    FILE *file = NULL;
+    int file_fd;
+    int size;
+    struct stat st;
 
     if (lookup_route(resource, &translate_resource) == 0 &&
-        (file = fopen(translate_resource, "r")) != NULL)
-        serve_file(client_fd, file, resource);
-    else
+            (file_fd = open(translate_resource, O_RDONLY)) >= 0) {
+        if (fstat(file_fd, &st) < 0) {
+            fprintf(stdout, "Error getting file info (errno %d)\n", errno);
+        }
+        content_t content = get_content_type(translate_resource, strlen(translate_resource));
+        size = st.st_size;
+
+        serve_file(client_fd, file_fd, content, size);
+        close(file_fd);
+    } else {
         serve_not_found(client_fd);
+    }
 }
 
