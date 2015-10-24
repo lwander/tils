@@ -92,7 +92,7 @@ int conn_is_alive(conn_t *conn) {
      * is still open */
     if (((double) clock()) / CLOCKS_PER_SEC - conn->last_alive >= _ttl) {
         char c;
-        fprintf(stdout, INFO ANSI_BLUE "%s" ANSI_RESET ANSI_BOLD "ping\n"
+        fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RESET ANSI_YELLOW "ping\n"
                 ANSI_RESET, conn->addr_buf);
         int s = recv(conn->client_fd, &c, sizeof(c), MSG_PEEK);
         if (s <= 0) {
