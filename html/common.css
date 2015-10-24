@@ -24,10 +24,10 @@ h2 {
     text-align: center;
 }
 
-.container a:visited,
-.container a:link,
-.container a:active,
-.container a:hover {
+.container a:visited.header,
+.container a:link.header,
+.container a:active.header,
+.container a:hover.header {
     outline: 0;
     color: black;
     background-color: transparent;
