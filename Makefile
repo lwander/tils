@@ -1,6 +1,6 @@
 IDIR=inc
 CXX=gcc
-CXXFLAGS=-I$(IDIR)/ -c -Wall -Wpedantic -Werror -std=c11 
+CXXFLAGS=-I$(IDIR)/ -c -Wall -Wpedantic -Werror -std=c11 -O3
 SHAREDFLAGS=-pthread
 
 OBJ_DIR=obj

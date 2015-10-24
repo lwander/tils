@@ -42,6 +42,7 @@ SERVER_STRING
 
 const char *header_file = "HTTP/1.1 200 OK\r\n"
 SERVER_STRING
+"Cache-Control: max-age=600\r\n"
 "Content-Type: %s\r\n"
 "Content-Length: %d\r\n"
 "\r\n";

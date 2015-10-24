@@ -62,6 +62,7 @@ conn_t *new_conn(int client_fd, char *addr_buf) {
     if (res != NULL)  {
         res->client_fd = client_fd;
         res->last_alive = ((double) clock()) / CLOCKS_PER_SEC;
+        res->alive = 1;
         memcpy(res->addr_buf, addr_buf, sizeof(res->addr_buf));
     } else {
         fprintf(stdout, ERROR "Allocating connection "
@@ -88,22 +89,8 @@ void revitalize_conn(conn_t *conn) {
  * @return 1 if true, 0 otherwise.
  */
 int conn_is_alive(conn_t *conn) {
-    /* If we haven't heard back for _ttl seconds, check if the connection
-     * is still open */
-    if (((double) clock()) / CLOCKS_PER_SEC - conn->last_alive >= _ttl) {
-        char c;
-        fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RESET ANSI_YELLOW "ping\n"
-                ANSI_RESET, conn->addr_buf);
-        int s = recv(conn->client_fd, &c, sizeof(c), MSG_PEEK);
-        if (s <= 0) {
-            return 0;
-        } else {
-            revitalize_conn(conn);
-            return 1;
-        }
-    } else {
-        return 1;
-    }
+    return (((double) clock()) / CLOCKS_PER_SEC - conn->last_alive < _ttl) &&
+        conn->alive;
 }
 
 /**
@@ -176,7 +163,7 @@ void accept_request(conn_t *conn) {
     http_request_t http_request;
 
     /* First grab the full HTTP request */
-    request_len = read(conn->client_fd, request, REQUEST_BUF_SIZE);
+    request_len = recv(conn->client_fd, request, REQUEST_BUF_SIZE, 0);
 
     if (request_len <= 0)
         return;
@@ -283,7 +270,7 @@ void start_thread_pool(int server_fd) {
         _worker_threads[i].id = i + 1;
         _worker_threads[i].size = 0;
         pthread_create(&_worker_threads[i].thread, NULL, handle_connections, 
-                (void *)&_worker_threads[i]);
+                (void *)&_worker_threads[i]); 
     }
 
     wt_t master;

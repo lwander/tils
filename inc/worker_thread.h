@@ -38,6 +38,8 @@ typedef struct conn {
     int client_fd;
 
     char addr_buf[INET_ADDRSTRLEN];
+
+    int alive;
 } conn_t;
 
 /**

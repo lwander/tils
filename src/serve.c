@@ -181,8 +181,21 @@ void serve_file(conn_t *conn, int file_fd, char *content_type, int size) {
 
     char buf[REQUEST_BUF_SIZE];
     int res = 0;
+
     while ((res = read(file_fd, buf, REQUEST_BUF_SIZE)) > 0) {
-        send_to_client(conn->client_fd, buf);
+        int total = 0;
+        while (res > 0) {
+            int sent = send(conn->client_fd, &buf[total], res, 0);
+
+            /* Mark connection as dead to be cleaned up later */
+            if (sent <= 0) {
+                conn->alive = 0;
+                return;
+            }
+
+            res -= sent;
+            total += sent;
+        }
     }
 }
 
@@ -194,7 +207,6 @@ void serve_resource(conn_t *conn, http_request_t http_request, char *resource) {
 
     char *remap_resource;
     int file_fd;
-    int size;
     struct stat st;
 
     if (lookup_route(resource, &remap_resource) == 0 &&
@@ -207,9 +219,8 @@ void serve_resource(conn_t *conn, http_request_t http_request, char *resource) {
         fprintf(stdout, ANSI_BLUE "%s <- " ANSI_GREEN ANSI_BOLD "200 " 
                 ANSI_RESET "%s\n", conn->addr_buf, remap_resource);
         char *content_type = get_content_type(remap_resource, strlen(remap_resource));
-        size = st.st_size;
 
-        serve_file(conn, file_fd, content_type, size);
+        serve_file(conn, file_fd, content_type, st.st_size);
         close(file_fd);
     } else {
         serve_not_found(conn);
