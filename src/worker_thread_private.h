@@ -34,6 +34,6 @@
 
 #define THREAD_COUNT (4)
 
-static double _ttl = 600;
+static double _ttl = 200;
 
 #endif /* _WORKER_THREAD_PRIVATE_H_ */
