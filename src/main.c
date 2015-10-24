@@ -119,6 +119,8 @@ int main(int argc, char *argv[]) {
     fprintf(stdout, "Building routes...          ");
     if (init_routes() < 0 || 
            add_route("/", "html/index.html") < 0 ||
+           add_route("/apple-touch-icon.png", "html/apple-touch-icon.png") < 0 ||
+           add_route("/favicon.png", "html/favicon.png") < 0 ||
            add_route("/common.css", "html/common.css") < 0) {
         fprintf(stdout, "failed.\n");
         res = -1;
