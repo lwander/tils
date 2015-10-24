@@ -64,11 +64,20 @@ conn_t *new_conn(int client_fd, char *addr_buf) {
         res->last_alive = ((double) clock()) / CLOCKS_PER_SEC;
         memcpy(res->addr_buf, addr_buf, sizeof(res->addr_buf));
     } else {
-        fprintf(stdout, ANSI_BOLD ANSI_RED "Error allocating connection "
-                ANSI_RESET ANSI_BOLD "(%s)\n" ANSI_RESET, strerror(errno));
+        fprintf(stdout, ERROR "Allocating connection "
+                ANSI_RESET "(%s)\n", strerror(errno));
     }
 
     return res;
+}
+
+/**
+ * @brief Update the last time a connection was heard from.
+ *
+ * @param conn The connection being updated.
+ */
+void revitalize_conn(conn_t *conn) {
+    conn->last_alive = ((double) (clock())) / CLOCKS_PER_SEC;
 }
 
 /**
@@ -79,16 +88,22 @@ conn_t *new_conn(int client_fd, char *addr_buf) {
  * @return 1 if true, 0 otherwise.
  */
 int conn_is_alive(conn_t *conn) {
-    return ((double) clock()) / CLOCKS_PER_SEC - conn->last_alive < _ttl;
-}
-
-/**
- * @brief Update the last time a connection was heard from.
- *
- * @param conn The connection being updated.
- */
-void revitalize_conn(conn_t *conn) {
-    conn->last_alive = ((double) (clock())) / CLOCKS_PER_SEC;
+    /* If we haven't heard back for _ttl seconds, check if the connection
+     * is still open */
+    if (((double) clock()) / CLOCKS_PER_SEC - conn->last_alive >= _ttl) {
+        char c;
+        fprintf(stdout, INFO ANSI_BLUE "%s" ANSI_RESET ANSI_BOLD "ping\n"
+                ANSI_RESET, conn->addr_buf);
+        int s = recv(conn->client_fd, &c, sizeof(c), MSG_PEEK);
+        if (s <= 0) {
+            return 0;
+        } else {
+            revitalize_conn(conn);
+            return 1;
+        }
+    } else {
+        return 1;
+    }
 }
 
 /**
@@ -179,7 +194,7 @@ void accept_request(conn_t *conn) {
             index);
 
     fprintf(stdout, ANSI_BLUE "%s -> " ANSI_RESET ANSI_BOLD "%s " ANSI_RESET
-            ANSI_GREEN "%s\n" ANSI_RESET, conn->addr_buf, word, resource);
+            "%s\n", conn->addr_buf, word, resource);
     serve_resource(conn, http_request, resource);
     return;
 }
@@ -217,7 +232,7 @@ void *handle_connections(void *_self) {
             } else {
                 accept_request(conn);
                 wt_push_conn(self, conn);
-                fprintf(stdout, "[INFO] size(::%d::) == %d\n", self->id, 
+                fprintf(stdout, INFO "size(::%d::) == %d\n", self->id, 
                         self->size);
 
                 /* Since there is now a connection, we must juggle listening
@@ -242,7 +257,7 @@ void *handle_connections(void *_self) {
             }
             fprintf(stdout, ANSI_BOLD ANSI_YELLOW "-/-> " ANSI_BLUE "%s\n" 
                     ANSI_RESET, addr_buf);
-            fprintf(stdout, "[INFO] size(::%d::) == %d\n", self->id, 
+            fprintf(stdout, INFO "size(::%d::) == %d\n", self->id, 
                     self->size);
             free_conn(conn);
             continue;

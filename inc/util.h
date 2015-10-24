@@ -35,6 +35,9 @@
 #define ANSI_CYAN    "\x1b[36m"
 #define ANSI_RESET   "\x1b[0m"
 
+#define INFO   ANSI_BOLD "[INFO] " ANSI_RESET
+#define ERROR  ANSI_BOLD ANSI_RED "[ERROR] " ANSI_RESET
+
 #define MAX(res, a, b) \
    do { __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
@@ -48,7 +51,7 @@
 #define CACHE_LINE_SIZE (64)
 
 #define HTTP_PORT (80)
-#define NUM_THREADS (4)
+#define THREAD_COUNT (1)
 #define REQUEST_BUF_SIZE (1 << 10)
 #define WORD_BUF_SIZE (1 << 7)
 

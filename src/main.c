@@ -68,8 +68,8 @@ int init_server() {
 
     /* Get a file descriptor for our socket */
     if ((server_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        fprintf(stdout, ANSI_BOLD ANSI_RED "Unable to create socket "
-                ANSI_RESET ANSI_BOLD "(%s)\n" ANSI_RESET, strerror(errno));
+        fprintf(stdout, ERROR "Unable to create socket "
+                ANSI_RESET "(%s)\n", strerror(errno));
         goto fail;
     }
 
@@ -85,16 +85,16 @@ int init_server() {
 
     /* Bind the socket file descriptor to our network interface */
     if (bind(server_fd, (struct sockaddr *)&ip4server, sizeof(ip4server)) < 0) {
-        fprintf(stdout, ANSI_BOLD ANSI_RED "Unable to bind socket "
-                ANSI_RESET ANSI_BOLD"(%s)\n" ANSI_RESET, strerror(errno));
+        fprintf(stdout, ERROR "Unable to bind socket "
+                ANSI_RESET "(%s)\n", strerror(errno));
         goto cleanup_socket;
     }
 
     /* Listen for connections on this socket. AFAIK, the second argument
      * (backlog) is a suggestion, not a hard value. */
     if (listen(server_fd, 16) < 0) {
-        fprintf(stdout, ANSI_BOLD ANSI_RED "Unable to listen on socket "
-                ANSI_RESET ANSI_BOLD "(%s)\n" ANSI_RESET, strerror(errno));
+        fprintf(stdout, ERROR "Unable to listen on socket "
+                ANSI_RESET "(%s)\n", strerror(errno));
         goto cleanup_socket;
     }
 

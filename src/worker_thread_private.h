@@ -32,8 +32,6 @@
 
 #include <util.h>
 
-#define THREAD_COUNT (4)
-
-static double _ttl = 200;
+static double _ttl = 60;
 
 #endif /* _WORKER_THREAD_PRIVATE_H_ */

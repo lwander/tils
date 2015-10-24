@@ -160,7 +160,7 @@ char *get_content_type(char *filename, int filename_len) {
  * @param client_fd The client being communicated with
  */
 void serve_unimplemented(conn_t *conn) {
-    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RED "501\n" ANSI_RESET, 
+    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_YELLOW ANSI_BOLD "501\n" ANSI_RESET, 
             conn->addr_buf);
     send_to_client(conn->client_fd, (char *)msg_unimplemented);
 }
@@ -171,7 +171,7 @@ void serve_unimplemented(conn_t *conn) {
  * @param client_fd The client being communicated with
  */
 void serve_not_found(conn_t *conn) {
-    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RED "404\n" ANSI_RESET, 
+    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RED ANSI_BOLD "404\n" ANSI_RESET, 
             conn->addr_buf);
     send_to_client(conn->client_fd, (char *)msg_not_found);
 }
@@ -204,8 +204,8 @@ void serve_resource(conn_t *conn, http_request_t http_request, char *resource) {
                     ANSI_RESET ANSI_BOLD "(%s)\n" ANSI_RESET, strerror(errno));
             return;
         }
-        fprintf(stdout, ANSI_BLUE "%s <- " ANSI_GREEN "%s\n" ANSI_RESET, 
-                conn->addr_buf, remap_resource);
+        fprintf(stdout, ANSI_BLUE "%s <- " ANSI_GREEN ANSI_BOLD "200 " 
+                ANSI_RESET "%s\n", conn->addr_buf, remap_resource);
         char *content_type = get_content_type(remap_resource, strlen(remap_resource));
         size = st.st_size;
 
