@@ -26,43 +26,14 @@
 #ifndef _WORKER_THREAD_PRIVATE_H_
 #define _WORKER_THREAD_PRIVATE_H_
 
-#include <util.h>
+#include <arpa/inet.h>
 
 #include <pthread.h>
+
+#include <util.h>
 
 #define THREAD_COUNT (4)
 
 static double _ttl = 600;
-
-typedef struct conn {
-    /* Linked list of connections */
-    struct conn *next;
-
-    /* Last alive time (used for keepalive) */
-    double last_alive;
-
-    int client_fd;
-} conn_t;
-
-/**
- * @brief Worker thread struct implementation.
- */
-typedef struct {
-    /* Aligned to the nearest cache line since each thread will be hammering
-     * this struct, and we don't want constant cross processor cache eviction
-     * that will occur if all of our thread objects are too close on the same
-     * cache line.
-     */
-    pthread_t thread __attribute__((aligned(CACHE_LINE_SIZE)));
-
-    /* List of managed connections */
-    conn_t *conns;
-    
-    /* Last managed connection here */
-    conn_t *last_conn;
-
-    /* File descriptor to listen to new connections on */
-    int server_fd;
-} wt_t;
 
 #endif /* _WORKER_THREAD_PRIVATE_H_ */

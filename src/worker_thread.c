@@ -32,6 +32,7 @@
 
 #include <time.h>
 #include <errno.h>
+#include <assert.h>
 #include <stdio.h>
 #include <pthread.h>
 
@@ -43,6 +44,8 @@
 
 #include <socket_util.h>
 #include <serve.h>
+#include <worker_thread.h>
+
 #include "worker_thread_private.h"
 
 static wt_t _worker_threads[THREAD_COUNT];
@@ -54,14 +57,15 @@ static wt_t _worker_threads[THREAD_COUNT];
  *
  * @return The new connection object. NULL on error.
  */
-conn_t *new_conn(int client_fd) {
+conn_t *new_conn(int client_fd, char *addr_buf) {
     conn_t *res = calloc(sizeof(conn_t), 1);
     if (res != NULL)  {
         res->client_fd = client_fd;
         res->last_alive = ((double) clock()) / CLOCKS_PER_SEC;
+        memcpy(res->addr_buf, addr_buf, sizeof(res->addr_buf));
     } else {
-        fprintf(stderr, "Error allocating connection, no memory!"
-                "(errno %d)\n", errno);
+        fprintf(stdout, ANSI_BOLD ANSI_RED "Error allocating connection "
+                ANSI_RESET ANSI_BOLD "(%s)\n" ANSI_RESET, strerror(errno));
     }
 
     return res;
@@ -100,11 +104,13 @@ conn_t *wt_pop_conn(wt_t *self) {
 
     conn_t *res = self->conns;
     self->conns = self->conns->next;
+    self->size--;
 
     /* Did we just pop the only connection? */
     if (self->last_conn == res) {
         self->last_conn = NULL;
         self->conns = NULL;
+        assert(self->size == 0);
     }
 
     return res;
@@ -124,6 +130,7 @@ void wt_push_conn(wt_t *self, conn_t *conn) {
         self->last_conn->next = conn;
         self->last_conn = conn;
     }
+    self->size++;
 }
 
 /**
@@ -142,10 +149,9 @@ void free_conn(conn_t *conn) {
 /**
  * @brief Process the type of HTTP request, and respond accordingly.
  *
- * @param client_fd File descriptor of client sending data.
+ * @param conn Connection being communicated with
  */
 void accept_request(conn_t *conn) {
-    int client_fd = conn->client_fd;
     char request[REQUEST_BUF_SIZE];
     char word[WORD_BUF_SIZE];
     char resource[WORD_BUF_SIZE];
@@ -155,7 +161,7 @@ void accept_request(conn_t *conn) {
     http_request_t http_request;
 
     /* First grab the full HTTP request */
-    request_len = read(client_fd, request, REQUEST_BUF_SIZE);
+    request_len = read(conn->client_fd, request, REQUEST_BUF_SIZE);
 
     if (request_len <= 0)
         return;
@@ -172,7 +178,9 @@ void accept_request(conn_t *conn) {
     word_len = read_word(request, REQUEST_BUF_SIZE, resource, WORD_BUF_SIZE,
             index);
 
-    serve_resource(client_fd, http_request, resource);
+    fprintf(stdout, ANSI_BLUE "%s -> " ANSI_RESET ANSI_BOLD "%s " ANSI_RESET
+            ANSI_GREEN "%s\n" ANSI_RESET, conn->addr_buf, word, resource);
+    serve_resource(conn, http_request, resource);
     return;
 }
 
@@ -190,26 +198,34 @@ void *handle_connections(void *_self) {
     int server_fd = self->server_fd;
     conn_t *conn = NULL;
     int blocking = 1;
+    char addr_buf[INET_ADDRSTRLEN];
 
     /* Alternate between binding new connections and reading from old ones */
     while (1) {
         if ((client_fd = accept(server_fd, (struct sockaddr *)&ip4client, 
                         &ip4client_len)) > 0) {
+            inet_ntop(AF_INET, (const void *)&ip4client.sin_addr, addr_buf, 
+                    INET_ADDRSTRLEN);
+            fprintf(stdout, ANSI_BOLD ANSI_GREEN  "-->  " ANSI_BLUE "%s\n" 
+                    ANSI_RESET, addr_buf);
             socket_keepalive(client_fd);
             socket_nonblocking(client_fd);
-            conn = new_conn(client_fd);
+
+            conn = new_conn(client_fd, addr_buf);
             if (conn == NULL) {
                 close(client_fd);
             } else {
                 accept_request(conn);
                 wt_push_conn(self, conn);
-            }
-            
-            /* Since there is now a connection, we must juggle listening
-             * and accepting new connections */
-            if (blocking) {
-                socket_nonblocking(server_fd);
-                blocking = 0;
+                fprintf(stdout, "[INFO] size(::%d::) == %d\n", self->id, 
+                        self->size);
+
+                /* Since there is now a connection, we must juggle listening
+                 * and accepting new connections */
+                if (blocking) {
+                    socket_nonblocking(server_fd);
+                    blocking = 0;
+                }
             }
         }
 
@@ -224,6 +240,10 @@ void *handle_connections(void *_self) {
                 socket_blocking(server_fd);
                 blocking = 1;
             }
+            fprintf(stdout, ANSI_BOLD ANSI_YELLOW "-/-> " ANSI_BLUE "%s\n" 
+                    ANSI_RESET, addr_buf);
+            fprintf(stdout, "[INFO] size(::%d::) == %d\n", self->id, 
+                    self->size);
             free_conn(conn);
             continue;
         }
@@ -245,6 +265,8 @@ void start_thread_pool(int server_fd) {
         _worker_threads[i].server_fd = server_fd;
         _worker_threads[i].conns = NULL;
         _worker_threads[i].last_conn = NULL;
+        _worker_threads[i].id = i + 1;
+        _worker_threads[i].size = 0;
         pthread_create(&_worker_threads[i].thread, NULL, handle_connections, 
                 (void *)&_worker_threads[i]);
     }
@@ -253,5 +275,8 @@ void start_thread_pool(int server_fd) {
     master.server_fd = server_fd;
     master.conns = NULL;
     master.last_conn = NULL;
+    master.id = 0;
+    master.size = 0;
+    fprintf(stdout, "done.\n");
     handle_connections((void*)&master);
 }

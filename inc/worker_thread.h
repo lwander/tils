@@ -26,20 +26,47 @@
 #ifndef _WORKER_THREAD_H_
 #define _WORKER_THREAD_H_
 
-/* We typedef these to allow the implementor to pick an implementation */
-struct _worker_thread;
-struct _connection;
+#include <arpa/inet.h>
 
-typedef struct _worker_thread wt_t;
-typedef struct _connection conn_t;
+typedef struct conn {
+    /* Linked list of connections */
+    struct conn *next;
 
-conn_t *wt_pop_conn(wt_t *self);
-void wt_push_conn(wt_t *self, conn_t *conn);
+    /* Last alive time (used for keepalive) */
+    double last_alive;
 
-int conn_is_alive(conn_t *conn);
-conn_t *new_conn(int client_fd);
-void revitalize_conn(conn_t *conn);
+    int client_fd;
 
-int start_thread_pool(int server_fd);
+    char addr_buf[INET_ADDRSTRLEN];
+} conn_t;
+
+/**
+ * @brief Worker thread struct implementation.
+ */
+typedef struct {
+    /* Aligned to the nearest cache line since each thread will be hammering
+     * this struct, and we don't want constant cross processor cache eviction
+     * that will occur if all of our thread objects are too close on the same
+     * cache line.
+     */
+    pthread_t thread __attribute__((aligned(CACHE_LINE_SIZE)));
+
+    /* List of managed connections */
+    conn_t *conns;
+    
+    /* Last managed connection here */
+    conn_t *last_conn;
+
+    /* File descriptor to listen to new connections on */
+    int server_fd;
+
+    /* Number of active connections */
+    int size;
+
+    /* More sane ID than pthread_self() */
+    int id;
+} wt_t;
+
+void start_thread_pool(int server_fd);
 
 #endif /* _WORKER_THREAD_H_ */

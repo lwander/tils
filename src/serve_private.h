@@ -28,19 +28,17 @@
 
 const char* msg_unimplemented = "HTTP/1.1 501 Method Not Implemented\r\n"
 SERVER_STRING
-"Content-Type: text/html\r\n"
+"Content-Type: text\r\n"
+"Content-Length: 8\r\n"
 "\r\n"
-"<html><head><title>Whoops</title></head>\r\n"
-"<body>Method type not supported :(</body>\r\n"
-"</html>\r\n";
+"Whoops\r\n";
 
 const char *msg_not_found = "HTTP/1.1 404 Not Found\r\n"
 SERVER_STRING
 "Content-Type: text/html\r\n"
+"Content-Length: 8\r\n"
 "\r\n"
-"<html><head><title>Whoops</title></head>\r\n"
-"<body>Resource not found :(</body>\r\n"
-"</html>\r\n";
+"Whoops\r\n";
 
 const char *header_file = "HTTP/1.1 200 OK\r\n"
 SERVER_STRING

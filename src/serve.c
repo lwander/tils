@@ -159,8 +159,10 @@ char *get_content_type(char *filename, int filename_len) {
  *
  * @param client_fd The client being communicated with
  */
-void serve_unimplemented(int client_fd) {
-    send_to_client(client_fd, (char *)msg_unimplemented);
+void serve_unimplemented(conn_t *conn) {
+    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RED "501\n" ANSI_RESET, 
+            conn->addr_buf);
+    send_to_client(conn->client_fd, (char *)msg_unimplemented);
 }
 
 /**
@@ -168,23 +170,25 @@ void serve_unimplemented(int client_fd) {
  *
  * @param client_fd The client being communicated with
  */
-void serve_not_found(int client_fd) {
-    send_to_client(client_fd, (char *)msg_not_found);
+void serve_not_found(conn_t *conn) {
+    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RED "404\n" ANSI_RESET, 
+            conn->addr_buf);
+    send_to_client(conn->client_fd, (char *)msg_not_found);
 }
 
-void serve_file(int client_fd, int file_fd, char *content_type, int size) {
-    send_to_client(client_fd, (char *)header_file, content_type, size);
+void serve_file(conn_t *conn, int file_fd, char *content_type, int size) {
+    send_to_client(conn->client_fd, (char *)header_file, content_type, size);
 
     char buf[REQUEST_BUF_SIZE];
     int res = 0;
     while ((res = read(file_fd, buf, REQUEST_BUF_SIZE)) > 0) {
-        send_to_client(client_fd, buf);
+        send_to_client(conn->client_fd, buf);
     }
 }
 
-void serve_resource(int client_fd, http_request_t http_request, char *resource) {
+void serve_resource(conn_t *conn, http_request_t http_request, char *resource) {
     if (http_request != GET) {
-        serve_unimplemented(client_fd);
+        serve_unimplemented(conn);
         return;
     }
 
@@ -195,17 +199,19 @@ void serve_resource(int client_fd, http_request_t http_request, char *resource) 
 
     if (lookup_route(resource, &remap_resource) == 0 &&
             (file_fd = open(remap_resource, O_RDONLY)) >= 0) {
-        fprintf(stdout, "serving %s\n", remap_resource);
         if (fstat(file_fd, &st) < 0) {
-            fprintf(stdout, "Error getting file info (errno %d)\n", errno);
+            fprintf(stdout, ANSI_BOLD ANSI_RED "Error getting file info "
+                    ANSI_RESET ANSI_BOLD "(%s)\n" ANSI_RESET, strerror(errno));
+            return;
         }
+        fprintf(stdout, ANSI_BLUE "%s <- " ANSI_GREEN "%s\n" ANSI_RESET, 
+                conn->addr_buf, remap_resource);
         char *content_type = get_content_type(remap_resource, strlen(remap_resource));
         size = st.st_size;
 
-        serve_file(client_fd, file_fd, content_type, size);
+        serve_file(conn, file_fd, content_type, size);
         close(file_fd);
     } else {
-        serve_not_found(client_fd);
+        serve_not_found(conn);
     }
 }
-

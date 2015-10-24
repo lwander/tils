@@ -68,7 +68,8 @@ int init_server() {
 
     /* Get a file descriptor for our socket */
     if ((server_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        fprintf(stderr, "Unable to create socket (errno %d)\n", errno);
+        fprintf(stdout, ANSI_BOLD ANSI_RED "Unable to create socket "
+                ANSI_RESET ANSI_BOLD "(%s)\n" ANSI_RESET, strerror(errno));
         goto fail;
     }
 
@@ -84,14 +85,16 @@ int init_server() {
 
     /* Bind the socket file descriptor to our network interface */
     if (bind(server_fd, (struct sockaddr *)&ip4server, sizeof(ip4server)) < 0) {
-        fprintf(stderr, "Unable to bind socket (errno %d)\n", errno);
+        fprintf(stdout, ANSI_BOLD ANSI_RED "Unable to bind socket "
+                ANSI_RESET ANSI_BOLD"(%s)\n" ANSI_RESET, strerror(errno));
         goto cleanup_socket;
     }
 
     /* Listen for connections on this socket. AFAIK, the second argument
      * (backlog) is a suggestion, not a hard value. */
     if (listen(server_fd, 16) < 0) {
-        fprintf(stderr, "Unable to listen on socket (errno %d)\n", errno);
+        fprintf(stdout, ANSI_BOLD ANSI_RED "Unable to listen on socket "
+                ANSI_RESET ANSI_BOLD "(%s)\n" ANSI_RESET, strerror(errno));
         goto cleanup_socket;
     }
 
@@ -113,7 +116,7 @@ int main(int argc, char *argv[]) {
     sigact.sa_handler = sigint_handler;
     sigaction(SIGINT, &sigact, NULL);
 
-    fprintf(stdout, "Building routes... ");
+    fprintf(stdout, "Building routes...          ");
     if (init_routes() < 0 || 
            add_route("/", "html/index.html") < 0 ||
            add_route("/common.css", "html/common.css") < 0) {
@@ -124,7 +127,7 @@ int main(int argc, char *argv[]) {
         fprintf(stdout, "done.\n");
     }
 
-    fprintf(stdout, "Opening connection... ");
+    fprintf(stdout, "Opening connection...       ");
     if ((server_fd = init_server()) < 0) {
         fprintf(stdout, "failed.\n");
         res = -1;
@@ -133,7 +136,7 @@ int main(int argc, char *argv[]) {
         fprintf(stdout, "done.\n");
     }
 
-    fprintf(stdout, "Starting working threads... \n");
+    fprintf(stdout, "Starting working threads... ");
     start_thread_pool(server_fd);
 
     close(server_fd);
@@ -141,6 +144,6 @@ int main(int argc, char *argv[]) {
 cleanup_routes:
     cleanup_routes();
 
-    fprintf(stdout, "Goodbye (errno %d)\n", errno);
+    fprintf(stdout, "Goodbye\n");
     return res;
 }
