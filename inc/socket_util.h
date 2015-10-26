@@ -24,5 +24,6 @@
  */
 
 int socket_keepalive(int sock);
-int socket_nonblocking(int sock);
-int socket_blocking(int sock);
+int fd_nonblocking(int sock);
+int fd_blocking(int sock);
+int fd_size(int fd);

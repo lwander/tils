@@ -160,7 +160,7 @@ char *get_content_type(char *filename, int filename_len) {
  * @param client_fd The client being communicated with
  */
 void serve_unimplemented(conn_t *conn) {
-    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_YELLOW ANSI_BOLD "501\n" ANSI_RESET, 
+    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_YELLOW ANSI_BOLD "501\n" ANSI_RESET,
             conn->addr_buf);
     send_to_client(conn->client_fd, (char *)msg_unimplemented);
 }
@@ -171,7 +171,7 @@ void serve_unimplemented(conn_t *conn) {
  * @param client_fd The client being communicated with
  */
 void serve_not_found(conn_t *conn) {
-    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RED ANSI_BOLD "404\n" ANSI_RESET, 
+    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RED ANSI_BOLD "404\n" ANSI_RESET,
             conn->addr_buf);
     send_to_client(conn->client_fd, (char *)msg_not_found);
 }
@@ -182,6 +182,7 @@ void serve_file(conn_t *conn, int file_fd, char *content_type, int size) {
     char buf[REQUEST_BUF_SIZE];
     int res = 0;
 
+    int sum_total = 0;
     while ((res = read(file_fd, buf, REQUEST_BUF_SIZE)) > 0) {
         int total = 0;
         while (res > 0) {
@@ -196,7 +197,12 @@ void serve_file(conn_t *conn, int file_fd, char *content_type, int size) {
             res -= sent;
             total += sent;
         }
+
+        sum_total += total;
+        fprintf(stdout, ANSI_CLEAR INFO "[%d/%d]", sum_total, size);
     }
+
+    fprintf(stdout, "\n");
 }
 
 void serve_resource(conn_t *conn, http_request_t http_request, char *resource) {
@@ -207,20 +213,23 @@ void serve_resource(conn_t *conn, http_request_t http_request, char *resource) {
 
     char *remap_resource;
     int file_fd;
-    struct stat st;
+    int size;
 
+    /* Find if we are allowed to serve this resource */
     if (lookup_route(resource, &remap_resource) == 0 &&
             (file_fd = open(remap_resource, O_RDONLY)) >= 0) {
-        if (fstat(file_fd, &st) < 0) {
-            fprintf(stdout, ANSI_BOLD ANSI_RED "Error getting file info "
-                    ANSI_RESET ANSI_BOLD "(%s)\n" ANSI_RESET, strerror(errno));
+        if ((size = fd_size(file_fd)) < 0)
             return;
-        }
-        fprintf(stdout, ANSI_BLUE "%s <- " ANSI_GREEN ANSI_BOLD "200 " 
-                ANSI_RESET "%s\n", conn->addr_buf, remap_resource);
-        char *content_type = get_content_type(remap_resource, strlen(remap_resource));
 
-        serve_file(conn, file_fd, content_type, st.st_size);
+        if ((
+
+        fprintf(stdout, ANSI_BLUE "%s <- " ANSI_GREEN ANSI_BOLD "200 "
+                ANSI_RESET "%s\n", conn->addr_buf, remap_resource);
+
+        char *content_type = get_content_type(remap_resource, 
+                strlen(remap_resource));
+
+        serve_file(conn, file_fd, content_type, size);
         close(file_fd);
     } else {
         serve_not_found(conn);

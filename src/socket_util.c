@@ -50,8 +50,8 @@ int socket_keepalive(int sock) {
     socklen_t optlen = sizeof(optval);
     /* Set keepalive status */
     if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen) < 0) {
-        fprintf(stderr, "Unable to set keepalive to %d (errno %d)\n",
-                optval, errno);
+        fprintf(stdout, ERROR "Unable to set keepalive to %d (%s)\n",
+                optval, strerr(errno));
         return -1;
     }
 
@@ -59,35 +59,57 @@ int socket_keepalive(int sock) {
 }
 
 /**
- * @brief Set socket to not block on accept
+ * @brief Set fd to not block on accept/read/recv/send
  *
- * @param sock The socket being modified
+ * @param sock The fd being modified
  *
  * @return 0 on success, < 0 otherwise
  */
-int socket_nonblocking(int sock) {
-    if (fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | O_NONBLOCK) < 0) {
-        fprintf(stderr, "Unable set status to non-blocking (errno %d)\n",
-                errno);
-        return -1;
+int fd_nonblocking(int sock) {
+    int res;
+    if ((res = fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | 
+                    O_NONBLOCK)) < 0) {
+        fprintf(stdout, ERROR "Unable set status to non-blocking (%s)\n",
+                strerror(errno));
+        return res;
     }
 
     return 0;
 }
 
 /**
- * @brief Set socket to not block on accept
+ * @brief Set fd to block on accept/read/recv/etc
  *
- * @param sock The socket being modified
+ * @param sock The fd being modified
  *
  * @return 0 on success, < 0 otherwise
  */
-int socket_blocking(int sock) {
-    if (fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) & ~O_NONBLOCK) < 0) {
-        fprintf(stderr, "Unable set status to non-blocking (errno %d)\n",
-                errno);
-        return -1;
+int fd_blocking(int sock) {
+    int res;
+    if ((res = fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) & 
+                    ~O_NONBLOCK)) < 0) {
+        fprintf(stdout, ERROR "Unable set status to blocking (%s)\n",
+                strerror(errno));
+        return res;
     }
 
     return 0;
+}
+
+/**
+ * @brief Get file size for input fd 
+ *
+ * @param fd The file descriptor being examined
+ *
+ * @return size on success, < 0 on failure
+ */
+int fd_size(int fd) {
+    struct stat st;
+    int res;
+    if ((res = fstat(file_fd, &st)) < 0) {
+        fprintf(stdout, ERROR "Getting file info (%s)\n", strerror(errno));
+        return res;
+    }
+
+    return st.st_size;
 }

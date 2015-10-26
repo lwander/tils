@@ -25,6 +25,8 @@
 
 #define _GNU_SOURCE
 
+static int _server_fd;
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -47,9 +49,9 @@
 #include <socket_util.h>
 #include <worker_thread.h>
 
-void sigint_handler(int client_fd) {
+void sigint_handler(int unused) {
     fprintf(stdout, "Shutting down `gracefully'\n");
-    close(client_fd);
+    close(_server_fd);
     exit(-1);
 }
 
@@ -79,7 +81,7 @@ int init_server() {
 
     /* At first block, because we don't need to spin waiting for connections
      * if we know there are none */
-    if (socket_blocking(server_fd) < 0) {
+    if (fd_nonblocking(server_fd) < 0) {
         goto fail;
     }
 
@@ -137,6 +139,9 @@ int main(int argc, char *argv[]) {
     } else {
         fprintf(stdout, "done.\n");
     }
+
+    /* Necessary for sigint handler */
+    _server_fd = server_fd;
 
     fprintf(stdout, "Starting working threads... ");
     start_thread_pool(server_fd);

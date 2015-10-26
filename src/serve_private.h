@@ -36,13 +36,12 @@ SERVER_STRING
 const char *msg_not_found = "HTTP/1.1 404 Not Found\r\n"
 SERVER_STRING
 "Content-Type: text/html\r\n"
-"Content-Length: 8\r\n"
+"Content-Length: 5\r\n"
 "\r\n"
-"Whoops\r\n";
+"404\r\n";
 
 const char *header_file = "HTTP/1.1 200 OK\r\n"
 SERVER_STRING
-"Cache-Control: max-age=600\r\n"
 "Content-Type: %s\r\n"
 "Content-Length: %d\r\n"
 "\r\n";

@@ -26,6 +26,8 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
+#include <time.h>
+
 #define ANSI_BOLD    "\x1b[1m"
 #define ANSI_RED     "\x1b[31m"
 #define ANSI_GREEN   "\x1b[32m"
@@ -34,6 +36,7 @@
 #define ANSI_MAGENTA "\x1b[35m"
 #define ANSI_CYAN    "\x1b[36m"
 #define ANSI_RESET   "\x1b[0m"
+#define ANSI_CLEAR   "\r\x1b[K"
 
 #define INFO   ANSI_BOLD "[INFO] " ANSI_RESET
 #define ERROR  ANSI_BOLD ANSI_RED "[ERROR] " ANSI_RESET
@@ -54,5 +57,7 @@
 #define THREAD_COUNT (1)
 #define REQUEST_BUF_SIZE (1 << 10)
 #define WORD_BUF_SIZE (1 << 7)
+
+#define TIME_NOW (((double) (clock())) / CLOCKS_PER_SEC)
 
 #endif /* _UTIL_H_ */
