@@ -50,64 +50,6 @@
 static wt_t _worker_threads[THREAD_COUNT];
 
 /**
- * @brief Pop a connection from a worker threads queue of connections.
- *
- * @param self The worker thread being modified.
- *
- * @return The connection least recently checked. NULL If there are none.
- */
-conn_t *wt_pop_conn(wt_t *self) {
-    if (self == NULL || self->conns == NULL)
-        return NULL;
-
-    conn_t *res = self->conns;
-    self->conns = self->conns->next;
-    self->size--;
-
-    /* Did we just pop the only connection? */
-    if (self->last_conn == res) {
-        self->last_conn = NULL;
-        self->conns = NULL;
-        assert(self->size == 0);
-    }
-
-    return res;
-}
-
-/**
- * @brief Push a connection onto a worker threads queue.
- *
- * @param self The worker thread being modified.
- * @param conn The connection being enqueued.
- */
-void wt_push_conn(wt_t *self, conn_t *conn) {
-    if (self == NULL || conn == NULL) {
-        return;
-    }
-    if (self->last_conn == NULL) {
-        self->last_conn = conn;
-        self->conns = conn;
-    } else {
-        self->last_conn->next = conn;
-        self->last_conn = conn;
-    }
-    self->size++;
-}
-
-/**
- * @brief Free input connection.
- *
- * @param conn Connection to be freed.
- */
-void free_conn(conn_t *conn) {
-    if (conn == NULL)
-        return;
-
-    close(conn->client_fd);
-    free(conn);
-}
-
-/**
  * @brief Process the type of HTTP request, and respond accordingly.
  *
  * @param conn Connection being communicated with
