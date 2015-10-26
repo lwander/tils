@@ -50,48 +50,6 @@
 static wt_t _worker_threads[THREAD_COUNT];
 
 /**
- * @brief Initialize a new connection.
- *
- * @param client_fd The client connection this connection listens to.
- *
- * @return The new connection object. NULL on error.
- */
-conn_t *new_conn(int client_fd, char *addr_buf) {
-    conn_t *res = calloc(sizeof(conn_t), 1);
-    if (res != NULL)  {
-        res->client_fd = client_fd;
-        res->last_alive = TIME_NOW;
-        res->alive = 1;
-        memcpy(res->addr_buf, addr_buf, sizeof(res->addr_buf));
-    } else {
-        fprintf(stdout, ERROR "Allocating connection "
-                ANSI_RESET "(%s)\n", strerror(errno));
-    }
-
-    return res;
-}
-
-/**
- * @brief Update the last time a connection was heard from.
- *
- * @param conn The connection being updated.
- */
-void revitalize_conn(conn_t *conn) {
-    conn->last_alive = TIME_NOW;
-}
-
-/**
- * @brief Check if connection is still alive.
- *
- * @param conn The connection being checked.
- *
- * @return 1 if true, 0 otherwise.
- */
-int conn_is_alive(conn_t *conn) {
-    return (TIME_NOW - conn->last_alive < _ttl) && conn->alive;
-}
-
-/**
  * @brief Pop a connection from a worker threads queue of connections.
  *
  * @param self The worker thread being modified.

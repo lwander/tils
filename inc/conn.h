@@ -30,6 +30,23 @@
 
 #define CONNS_PER_THREAD (1000)
 
+#define CONN_BUF_ELEM_AT(i) ((i) % CONNS_PER_THREAD)
+#define CONN_BUF_ELEM_NEXT(c) (CONN_BUF_ELEM_NEXT((c) + 1))
+
+typedef enum conn_state_e {
+    /* Connection is totally closed, no dangling resources */
+    CONN_CLEAN = 0,
+
+    /* Connection is running normally */
+    CONN_ALIVE,
+
+    /* Connection should be closed and marked as clean afterwards */
+    CONN_DEAD,
+
+    /* Not a connection */
+    CONN_NONE
+} conn_state;
+
 /**
  * @brief A single connection handled by a single thread
  */
@@ -46,16 +63,16 @@ typedef struct conn {
     /* ipv4 address of client - used for logging purposes. */
     char addr_buf[INET_ADDRSTRLEN];
 
-    /* connection can be marked as dead and cleaned up lazily using this flag.
+    /* Connection can be marked as dead and cleaned up lazily using this flag.
      */
-    int alive;
+    conn_state state;
 } conn_t;
 
 /**
  * @brief Used to store all connections that belong to a thread
  *
- * Implemented as a ring buffer. The idea is that when a thread hits its 
- * max number of connections - we can through away the oldest to make room
+ * Implemented as a ring buffer. The idea is that when a thread hits its
+ * max number of connections we can through away the oldest to make room
  * for the next.
  */
 typedef struct conn_buf {
@@ -67,6 +84,18 @@ typedef struct conn_buf {
 
     /* Index of first unused connection. */
     int end;
+
+    /* Current size of buffer */
+    int size;
 } conn_buf_t;
+
+void conn_revitalize(conn_t *conn);
+int conn_is_alive(conn_t *conn);
+conn_state conn_close(conn_t *conn);
+
+void conn_buf_init(conn_buf_t **conn_buf);
+void conn_buf_push(conn_buf_t *conn_buf, int client_fd, char *addr_buf);
+conn_state conn_buf_pop(conn_buf_t *conn_buf);
+void conn_buf_at(conn_buf_t *conn_buf, int i, conn_t **conn);
 
 #endif /* _CONN_H_ */

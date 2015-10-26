@@ -18,10 +18,148 @@
 /**
  * @file src/conn.c
  *
- * @brief Connection manipulation implementation. The key detail is the 
- *        implementation of non-blocking IO facilitated by storing both 
+ * @brief Connection manipulation implementation. The key detail is the
+ *        implementation of non-blocking IO facilitated by storing both
  *        files being served and their corresponding sockets.
  *
  * @author Lars Wander
  */
 
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+
+#include <conn.h>
+#include <util.h>
+
+/**
+ * @brief Initialize a new connection.
+ *
+ * @param client_fd The client connection this connection listens to.
+ *
+ * @return The new connection object. NULL on error.
+ */
+void conn_new(int client_fd, char *addr_buf, conn_t *conn) {
+    conn->client_fd = client_fd;
+    conn->last_alive = TIME_NOW;
+    conn->state = CONN_ALIVE;
+    conn->file_fd = -1;
+    memcpy(conn->addr_buf, addr_buf, sizeof(conn->addr_buf));
+}
+
+/**
+ * @brief Update the last time a connection was heard from.
+ *
+ * @param conn The connection being updated.
+ */
+void conn_revitalize(conn_t *conn) {
+    conn->last_alive = TIME_NOW;
+}
+
+/**
+ * @brief Check if connection is still alive.
+ *
+ * @param conn The connection being checked.
+ *
+ * This function also marks the result of the check in the connection state.
+ *
+ * @return 1 if true, 0 otherwise.
+ */
+int conn_check_alive(conn_t *conn) {
+    if (conn->state == CONN_DEAD || conn->state == CONN_CLEAN) {
+        return 0;
+    } else if (TIME_NOW - conn->last_alive < _ttl) {
+        conn->state = CONN_DEAD;
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+/**
+ * @brief Close a connections file descriptors.
+ *
+ * @param conn The connection being closed.
+ *
+ * @return The original state of conn before close.
+ */
+conn_state conn_close(conn_t *conn) {
+    conn_state res = conn->state;
+    if (res != CONN_CLEAN) {
+        close(conn->client_fd);
+
+        if (conn->file_fd >= 0) {
+            close(conn->file_fd);
+        }
+
+        /* TODO Log forced death here */
+        conn->state = CONN_CLEAN;
+    }
+
+    return res;
+}
+
+/**
+ * @brief Push a connection onto the connection buffer
+ *
+ * @param conn_buf The connection buffer being added to.
+ * @param client_fd Socket connection is on.
+ * @param addr_buf Address of connection for logging.
+ */
+void conn_buf_push(conn_buf_t *conn_buf, int client_fd, char *addr_buf) {
+    /* First safely evict existing connection (if we are full) */
+    if (conn_buf->size == CONNS_PER_THREAD)
+        conn_buf_pop(conn_buf_t);
+
+    conn_new(client_fd, addr_buf, &conn_buf->conns[conn_buf->end]);
+    conn_buf->end = CONN_BUF_ELEM_NEXT(conn_buf->end);
+    conn_buf->size++;
+}
+
+/**
+ * @brief Pop a connection (without ever seeing what it was), and close it
+ *        in the process.
+ *
+ * @param conn_buf The connection buffer being popped from.
+ *
+ * @return The state of the connection that was popped prior to the
+ *         operation being carried out, unless the buffer was empty,
+ *         in which case return CONN_NONE.
+ */
+conn_state conn_buf_pop(conn_buf_t *conn_buf) {
+    if (conn_buf->size == 0)
+        return CONN_NONE;
+
+    conn_state res = conn_buf->conns[conn_buf->start];
+    conn_close(&conn_buf->conns[conn_buf->start]);
+    conn_buf->start = CONN_BUF_ELEM_NEXT(conn_buf->start);
+    conn_buf->size--;
+
+    return res;
+}
+
+/**
+ * @brief Peek at the given index into the connection buffer.
+ *
+ * @param conn_buf The connection buffer being examined.
+ * @param i The index of the lookup.
+ * @param[out] conn_buf A non-null pointer that will store the result of the
+ *             lookup. If we specify an invalid index, it will point to NULL.
+ */
+void conn_buf_at(conn_buf_t *conn_buf, int i, conn_t **conn) {
+    if (i >= conn_buf->size)
+        *conn = NULL
+    else
+        *conn = &conn_buf->conns[CONN_BUF_ELEM_AT(conn_buf->start + i)];
+}
+
+void conn_buf_init(conn_buf_t **conn_buf) {
+    *conn_buf = calloc(sizeof(conn_buf_t));
+
+    if (*conn_buf == NULL) {
+        fprintf(stdout, ERROR "No memory for initialization of connection "
+                "buffers. (%s).\n", strerror(errno));
+        exit(-1);
+    }
+}
