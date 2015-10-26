@@ -26,22 +26,6 @@
 #ifndef _WORKER_THREAD_H_
 #define _WORKER_THREAD_H_
 
-#include <arpa/inet.h>
-
-typedef struct conn {
-    /* Linked list of connections */
-    struct conn *next;
-
-    /* Last alive time (used for keepalive) */
-    double last_alive;
-
-    int client_fd;
-
-    char addr_buf[INET_ADDRSTRLEN];
-
-    int alive;
-} conn_t;
-
 /**
  * @brief Worker thread struct implementation.
  */

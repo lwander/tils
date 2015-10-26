@@ -16,24 +16,12 @@
  */
 
 /**
- * @file src/worker_thread_private.c
+ * @file src/conn.c
  *
- * @brief 'secret' details of worker_thread implementation go here.
+ * @brief Connection manipulation implementation. The key detail is the 
+ *        implementation of non-blocking IO facilitated by storing both 
+ *        files being served and their corresponding sockets.
  *
- * @author Lars Wander (lars.wander@gmail.com)
+ * @author Lars Wander
  */
 
-#ifndef _WORKER_THREAD_PRIVATE_H_
-#define _WORKER_THREAD_PRIVATE_H_
-
-#include <arpa/inet.h>
-
-#include <pthread.h>
-
-#include <util.h>
-
-static double _ttl = 60;
-
-#define LOG_HEALTH (1000000)
-
-#endif /* _WORKER_THREAD_PRIVATE_H_ */

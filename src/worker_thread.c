@@ -30,7 +30,6 @@
 
 #define _GNU_SOURCE
 
-#include <time.h>
 #include <errno.h>
 #include <assert.h>
 #include <stdio.h>
@@ -61,7 +60,7 @@ conn_t *new_conn(int client_fd, char *addr_buf) {
     conn_t *res = calloc(sizeof(conn_t), 1);
     if (res != NULL)  {
         res->client_fd = client_fd;
-        res->last_alive = ((double) clock()) / CLOCKS_PER_SEC;
+        res->last_alive = TIME_NOW;
         res->alive = 1;
         memcpy(res->addr_buf, addr_buf, sizeof(res->addr_buf));
     } else {
@@ -78,7 +77,7 @@ conn_t *new_conn(int client_fd, char *addr_buf) {
  * @param conn The connection being updated.
  */
 void revitalize_conn(conn_t *conn) {
-    conn->last_alive = ((double) (clock())) / CLOCKS_PER_SEC;
+    conn->last_alive = TIME_NOW;
 }
 
 /**
@@ -89,8 +88,7 @@ void revitalize_conn(conn_t *conn) {
  * @return 1 if true, 0 otherwise.
  */
 int conn_is_alive(conn_t *conn) {
-    return (((double) clock()) / CLOCKS_PER_SEC - conn->last_alive < _ttl) &&
-        conn->alive;
+    return (TIME_NOW - conn->last_alive < _ttl) && conn->alive;
 }
 
 /**
@@ -101,7 +99,7 @@ int conn_is_alive(conn_t *conn) {
  * @return The connection least recently checked. NULL If there are none.
  */
 conn_t *wt_pop_conn(wt_t *self) {
-    if (self->conns == NULL)
+    if (self == NULL || self->conns == NULL)
         return NULL;
 
     conn_t *res = self->conns;
@@ -125,6 +123,9 @@ conn_t *wt_pop_conn(wt_t *self) {
  * @param conn The connection being enqueued.
  */
 void wt_push_conn(wt_t *self, conn_t *conn) {
+    if (self == NULL || conn == NULL) {
+        return;
+    }
     if (self->last_conn == NULL) {
         self->last_conn = conn;
         self->conns = conn;
@@ -199,53 +200,49 @@ void *handle_connections(void *_self) {
     int client_fd = 0;
     int server_fd = self->server_fd;
     conn_t *conn = NULL;
-    int blocking = 1;
     char addr_buf[INET_ADDRSTRLEN];
 
     /* Alternate between binding new connections and reading from old ones */
     while (1) {
         if ((client_fd = accept(server_fd, (struct sockaddr *)&ip4client, 
                         &ip4client_len)) > 0) {
+
+            /* Load the IP address for logging purposes */
             inet_ntop(AF_INET, (const void *)&ip4client.sin_addr, addr_buf, 
                     INET_ADDRSTRLEN);
-            fprintf(stdout, ANSI_BOLD ANSI_GREEN  "-->  " ANSI_BLUE "%s\n" 
-                    ANSI_RESET, addr_buf);
+
+            /* Keep alive can fail
+             * TODO if the error hints at a larger problem, do something here
+             */
             socket_keepalive(client_fd);
-            socket_nonblocking(client_fd);
 
             conn = new_conn(client_fd, addr_buf);
             if (conn == NULL) {
                 close(client_fd);
+            } else if (fd_nonblocking(client_fd) < 0) {
+                /* If non blocking fails, every call to `accept' will take too
+                 * long. This connection is then no longer viable */
+                free_conn(conn);
             } else {
                 accept_request(conn);
                 wt_push_conn(self, conn);
-                fprintf(stdout, INFO "size(::%d::) == %d\n", self->id, 
-                        self->size);
-
-                /* Since there is now a connection, we must juggle listening
-                 * and accepting new connections */
-                if (blocking) {
-                    socket_nonblocking(server_fd);
-                    blocking = 0;
-                }
+                fprintf(stdout, ANSI_BOLD ANSI_GREEN  "-->  " ANSI_BLUE "%s\n" 
+                        ANSI_RESET, addr_buf);
             }
         }
 
         conn = wt_pop_conn(self);
-        if (conn == NULL)
+        if (conn == NULL) {
+            assert(self->size == 0);
             continue;
+        }
 
+        /* Lazy cleanup is preformed here, meaning, if a connection 
+         * encountered an error, or hasn't been heard from in sometime, we
+         * delete it */
         if (!conn_is_alive(conn)) {
-            /* If this is our only connections, we can don't have to spin 
-             * accepting existing connections anymore */
-            if (self->conns == NULL) {
-                socket_blocking(server_fd);
-                blocking = 1;
-            }
             fprintf(stdout, ANSI_BOLD ANSI_YELLOW "-/-> " ANSI_BLUE "%s\n" 
                     ANSI_RESET, addr_buf);
-            fprintf(stdout, INFO "size(::%d::) == %d\n", self->id, 
-                    self->size);
             free_conn(conn);
             continue;
         }
@@ -258,7 +255,7 @@ void *handle_connections(void *_self) {
 }
 
 /**
- * @brief Run the thread pool
+ * @brief Run the thread pool - the master thread is roped into this as well.
  *
  * @param server_fd The server socket to listen on
  */
