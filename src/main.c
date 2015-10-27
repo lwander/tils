@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
     sigact.sa_handler = sigint_handler;
     sigaction(SIGINT, &sigact, NULL);
 
-    fprintf(stdout, "Building routes...          ");
+    fprintf(stdout, "Building routes...\n");
     if (init_routes() < 0 || 
            add_route("/", "html/index.html") < 0 ||
            add_route("/apple-touch-icon.png", "html/apple-touch-icon.png") < 0 ||
@@ -127,23 +127,19 @@ int main(int argc, char *argv[]) {
         fprintf(stdout, "failed.\n");
         res = -1;
         goto cleanup_routes;
-    } else {
-        fprintf(stdout, "done.\n");
-    }
+    } 
 
-    fprintf(stdout, "Opening connection...       ");
+    fprintf(stdout, "Opening connection...\n");
     if ((server_fd = init_server()) < 0) {
         fprintf(stdout, "failed.\n");
         res = -1;
         goto cleanup_routes;
-    } else {
-        fprintf(stdout, "done.\n");
     }
 
     /* Necessary for sigint handler */
     _server_fd = server_fd;
 
-    fprintf(stdout, "Starting working threads... ");
+    fprintf(stdout, "Starting working threads...\n");
     start_thread_pool(server_fd);
 
     close(server_fd);

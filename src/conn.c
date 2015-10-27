@@ -69,7 +69,7 @@ void conn_revitalize(conn_t *conn) {
 int conn_check_alive(conn_t *conn) {
     if (conn->state == CONN_DEAD || conn->state == CONN_CLEAN) {
         return 0;
-    } else if (TIME_NOW - conn->last_alive < _ttl) {
+    } else if (TIME_NOW - conn->last_alive >= _ttl) {
         conn->state = CONN_DEAD;
         return 0;
     } else {
@@ -106,15 +106,20 @@ conn_state conn_close(conn_t *conn) {
  * @param conn_buf The connection buffer being added to.
  * @param client_fd Socket connection is on.
  * @param addr_buf Address of connection for logging.
+ *
+ * @return The connection that was added
  */
-void conn_buf_push(conn_buf_t *conn_buf, int client_fd, char *addr_buf) {
+conn_t *conn_buf_push(conn_buf_t *conn_buf, int client_fd, char *addr_buf) {
     /* First safely evict existing connection (if we are full) */
     if (conn_buf->size == CONNS_PER_THREAD)
         conn_buf_pop(conn_buf_t);
 
     conn_new(client_fd, addr_buf, &conn_buf->conns[conn_buf->end]);
+    conn_t *res = &conn_buf->conns[conn_buf->end];
     conn_buf->end = CONN_BUF_ELEM_NEXT(conn_buf->end);
     conn_buf->size++;
+
+    return res;
 }
 
 /**
@@ -154,12 +159,20 @@ void conn_buf_at(conn_buf_t *conn_buf, int i, conn_t **conn) {
         *conn = &conn_buf->conns[CONN_BUF_ELEM_AT(conn_buf->start + i)];
 }
 
+/**
+ * @brief Initialize a connection buffer.
+ *
+ * The goal of this is to minimize memory allocations while the server is
+ * running by preallocating all the resources we will use.
+ *
+ * @param conn_buf A pointer to the connection buffer to be initialized
+ */
 void conn_buf_init(conn_buf_t **conn_buf) {
     *conn_buf = calloc(sizeof(conn_buf_t));
 
     if (*conn_buf == NULL) {
-        fprintf(stdout, ERROR "No memory for initialization of connection "
-                "buffers. (%s).\n", strerror(errno));
+        fprintf(stderr, ERROR "No memory for initialization of connection "
+                "buffers (%s).\n", strerror(errno));
         exit(-1);
     }
 }

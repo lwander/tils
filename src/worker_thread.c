@@ -2,8 +2,7 @@
  *  This file is part of c-http.
  *
  *  c-http is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
+ *  it under the terms of the GNU General Public License as published by *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
  *  c-http is distributed in the hope that it will be useful,
@@ -34,10 +33,12 @@
 #include <assert.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -51,8 +52,7 @@ static wt_t _worker_threads[THREAD_COUNT];
 
 /**
  * @brief Process the type of HTTP request, and respond accordingly.
- *
- * @param conn Connection being communicated with
+ * * @param conn Connection being communicated with
  */
 void accept_request(conn_t *conn) {
     char request[REQUEST_BUF_SIZE];
@@ -95,20 +95,67 @@ void accept_request(conn_t *conn) {
  */
 void *handle_connections(void *_self) {
     wt_t *self = (wt_t *)_self;
+
     struct sockaddr_in ip4client;
     unsigned int ip4client_len = sizeof(ip4client);
+
     int client_fd = 0;
     int server_fd = self->server_fd;
-    conn_t *conn = NULL;
-    char addr_buf[INET_ADDRSTRLEN];
 
-    /* Alternate between binding new connections and reading from old ones */
+    char addr_buf[INET_ADDRSTRLEN];
+    conn_t *conn = NULL;
+    conn_buf_t *conns = self->conns;
+
+    fd_set read_fs;
+    struct timeval timeout { .tv_sec = 5, .tv_usec = 0 };
+    int nfds = 0;
+
     while (1) {
-        if ((client_fd = accept(server_fd, (struct sockaddr *)&ip4client, 
+        FD_ZERO(&read_fs);
+        FD_SET(server_fd, &read_fs);
+        nfds = server_fd;
+
+        /* Do cleanup, and simultaneously record connections in our fd_set. */
+        for (int i = 0; i < conn_buf_size(conns); i++) {
+            conn_buf_at(conn_buf, i, &conn);
+            if (conn == NULL || conn->state == CONN_CLEAN)
+                continue;
+
+            /* Update connection state */
+            conn_check_alive(conn);
+
+            if (conn->state == CONN_DEAD) {
+                fprintf(stdout, ANSI_BOLD ANSI_YELLOW "-/-> " ANSI_BLUE "%s\n"
+                        ANSI_RESET, conn->addr_buf);
+                conn_close(conn);
+                continue;
+            }
+
+            FD_SET(conn->client_fd, &read_fs);
+            if (conn->client_fd > nfds)
+                nfds = conn->client_fd;
+
+            if (conn->file_fd >= 0)
+                FD_SET(conn->file_fd, &read_fs);
+            if (conn->file_fd > nfds)
+                nfds = conn->file_fd;
+        }
+
+        int res = 0;
+        if ((res = select(ndfs + 1, &read_fs, NULL, NULL, &timeout)) < 0) {
+            fprintf(stderr, ERROR "Select failed (%s).\n", strerror(errno));
+            exit(-1);
+        }
+
+        /* 0 means no file descriptors are active and the timeout woke us up */
+        if (res == 0)
+            continue;
+
+        if ((client_fd = accept(server_fd, (struct sockaddr *)&ip4client,
                         &ip4client_len)) > 0) {
 
             /* Load the IP address for logging purposes */
-            inet_ntop(AF_INET, (const void *)&ip4client.sin_addr, addr_buf, 
+            inet_ntop(AF_INET, (const void *)&ip4client.sin_addr, addr_buf,
                     INET_ADDRSTRLEN);
 
             /* Keep alive can fail
@@ -116,41 +163,29 @@ void *handle_connections(void *_self) {
              */
             socket_keepalive(client_fd);
 
-            conn = new_conn(client_fd, addr_buf);
-            if (conn == NULL) {
-                close(client_fd);
-            } else if (fd_nonblocking(client_fd) < 0) {
+            if (fd_nonblocking(client_fd) < 0) {
                 /* If non blocking fails, every call to `accept' will take too
                  * long. This connection is then no longer viable */
-                free_conn(conn);
+                close(client_fd);
             } else {
+                conn = conn_buf_push(conn_buf, client_fd, addr_buf);
                 accept_request(conn);
-                wt_push_conn(self, conn);
-                fprintf(stdout, ANSI_BOLD ANSI_GREEN  "-->  " ANSI_BLUE "%s\n" 
+                fprintf(stdout, ANSI_BOLD ANSI_GREEN  "-->  " ANSI_BLUE "%s\n"
                         ANSI_RESET, addr_buf);
             }
         }
 
-        conn = wt_pop_conn(self);
-        if (conn == NULL) {
-            assert(self->size == 0);
-            continue;
-        }
+        /* Respond to sockets that are ready to be read from */
+        for (int i = 0; i < conn_buf_size(conns); i++) {
+            conn_buf_at(conn_buf, i, &conn);
+            if (conn == NULL || FD_ISSET(conn->client_fd, read_fs))
+                continue
 
-        /* Lazy cleanup is preformed here, meaning, if a connection 
-         * encountered an error, or hasn't been heard from in sometime, we
-         * delete it */
-        if (!conn_is_alive(conn)) {
-            fprintf(stdout, ANSI_BOLD ANSI_YELLOW "-/-> " ANSI_BLUE "%s\n" 
-                    ANSI_RESET, addr_buf);
-            free_conn(conn);
-            continue;
+            accept_request(conn);
         }
-
-        accept_request(conn);
-        wt_push_conn(self, conn);
     }
 
+    /* Just for you, compiler */
     return NULL;
 }
 
@@ -162,20 +197,16 @@ void *handle_connections(void *_self) {
 void start_thread_pool(int server_fd) {
     for (int i = 0; i < THREAD_COUNT; i++) {
         _worker_threads[i].server_fd = server_fd;
-        _worker_threads[i].conns = NULL;
-        _worker_threads[i].last_conn = NULL;
+        conn_buf_init(&_worker_threads[i].conns);
         _worker_threads[i].id = i + 1;
-        _worker_threads[i].size = 0;
-        pthread_create(&_worker_threads[i].thread, NULL, handle_connections, 
-                (void *)&_worker_threads[i]); 
+        pthread_create(&_worker_threads[i].thread, NULL, handle_connections,
+                (void *)&_worker_threads[i]);
     }
 
     wt_t master;
     master.server_fd = server_fd;
-    master.conns = NULL;
-    master.last_conn = NULL;
+    conn_buf_init(&master.conns);
     master.id = 0;
     master.size = 0;
-    fprintf(stdout, "done.\n");
     handle_connections((void*)&master);
 }

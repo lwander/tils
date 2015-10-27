@@ -94,7 +94,7 @@ int conn_is_alive(conn_t *conn);
 conn_state conn_close(conn_t *conn);
 
 void conn_buf_init(conn_buf_t **conn_buf);
-void conn_buf_push(conn_buf_t *conn_buf, int client_fd, char *addr_buf);
+conn_t *conn_buf_push(conn_buf_t *conn_buf, int client_fd, char *addr_buf);
 conn_state conn_buf_pop(conn_buf_t *conn_buf);
 void conn_buf_at(conn_buf_t *conn_buf, int i, conn_t **conn);
 
