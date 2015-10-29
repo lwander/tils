@@ -37,6 +37,7 @@
 
 #include <serve.h>
 #include <routes.h>
+#include <socket_util.h>
 
 #include "serve_private.h"
 
@@ -190,7 +191,7 @@ void serve_file(conn_t *conn, int file_fd, char *content_type, int size) {
 
             /* Mark connection as dead to be cleaned up later */
             if (sent <= 0) {
-                conn->alive = 0;
+                conn->state = CONN_DEAD;
                 return;
             }
 
@@ -199,7 +200,7 @@ void serve_file(conn_t *conn, int file_fd, char *content_type, int size) {
         }
 
         sum_total += total;
-        fprintf(stdout, ANSI_CLEAR INFO "[%d/%d]", sum_total, size);
+        fprintf(stdout, ANSI_CLEAR INFO "[%d/%d bytes]", sum_total, size);
     }
 
     fprintf(stdout, "\n");
@@ -220,8 +221,6 @@ void serve_resource(conn_t *conn, http_request_t http_request, char *resource) {
             (file_fd = open(remap_resource, O_RDONLY)) >= 0) {
         if ((size = fd_size(file_fd)) < 0)
             return;
-
-        if ((
 
         fprintf(stdout, ANSI_BLUE "%s <- " ANSI_GREEN ANSI_BOLD "200 "
                 ANSI_RESET "%s\n", conn->addr_buf, remap_resource);

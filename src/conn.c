@@ -27,7 +27,9 @@
 
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <errno.h>
 
 #include <conn.h>
@@ -69,7 +71,7 @@ void conn_revitalize(conn_t *conn) {
 int conn_check_alive(conn_t *conn) {
     if (conn->state == CONN_DEAD || conn->state == CONN_CLEAN) {
         return 0;
-    } else if (TIME_NOW - conn->last_alive >= _ttl) {
+    } else if (TIME_NOW - conn->last_alive >= TTL) {
         conn->state = CONN_DEAD;
         return 0;
     } else {
@@ -112,7 +114,7 @@ conn_state conn_close(conn_t *conn) {
 conn_t *conn_buf_push(conn_buf_t *conn_buf, int client_fd, char *addr_buf) {
     /* First safely evict existing connection (if we are full) */
     if (conn_buf->size == CONNS_PER_THREAD)
-        conn_buf_pop(conn_buf_t);
+        conn_buf_pop(conn_buf);
 
     conn_new(client_fd, addr_buf, &conn_buf->conns[conn_buf->end]);
     conn_t *res = &conn_buf->conns[conn_buf->end];
@@ -136,7 +138,7 @@ conn_state conn_buf_pop(conn_buf_t *conn_buf) {
     if (conn_buf->size == 0)
         return CONN_NONE;
 
-    conn_state res = conn_buf->conns[conn_buf->start];
+    conn_state res = conn_buf->conns[conn_buf->start].state;
     conn_close(&conn_buf->conns[conn_buf->start]);
     conn_buf->start = CONN_BUF_ELEM_NEXT(conn_buf->start);
     conn_buf->size--;
@@ -154,7 +156,7 @@ conn_state conn_buf_pop(conn_buf_t *conn_buf) {
  */
 void conn_buf_at(conn_buf_t *conn_buf, int i, conn_t **conn) {
     if (i >= conn_buf->size)
-        *conn = NULL
+        *conn = NULL;
     else
         *conn = &conn_buf->conns[CONN_BUF_ELEM_AT(conn_buf->start + i)];
 }
@@ -168,11 +170,20 @@ void conn_buf_at(conn_buf_t *conn_buf, int i, conn_t **conn) {
  * @param conn_buf A pointer to the connection buffer to be initialized
  */
 void conn_buf_init(conn_buf_t **conn_buf) {
-    *conn_buf = calloc(sizeof(conn_buf_t));
+    *conn_buf = calloc(sizeof(conn_buf_t), 1);
 
     if (*conn_buf == NULL) {
         fprintf(stderr, ERROR "No memory for initialization of connection "
                 "buffers (%s).\n", strerror(errno));
         exit(-1);
     }
+}
+
+/**
+ * @brief Get the number of elements in the connection buffer.
+ *
+ * @param conn_buf The connection buffer being examined.
+ */
+int conn_buf_size(conn_buf_t *conn_buf) {
+    return conn_buf->size;
 }

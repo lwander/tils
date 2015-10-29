@@ -26,6 +26,10 @@
 #ifndef _WORKER_THREAD_H_
 #define _WORKER_THREAD_H_
 
+#include <conn.h>
+
+#define THREAD_COUNT (1)
+
 /**
  * @brief Worker thread struct implementation.
  */

@@ -69,7 +69,7 @@ void accept_request(conn_t *conn) {
     if (request_len <= 0)
         return;
 
-    revitalize_conn(conn);
+    conn_revitalize(conn);
 
     /* Start parsing it word by word */
     /* TODO More robust parsing of requests */
@@ -104,10 +104,10 @@ void *handle_connections(void *_self) {
 
     char addr_buf[INET_ADDRSTRLEN];
     conn_t *conn = NULL;
-    conn_buf_t *conns = self->conns;
+    conn_buf_t *conn_buf = self->conns;
 
     fd_set read_fs;
-    struct timeval timeout { .tv_sec = 5, .tv_usec = 0 };
+    struct timeval timeout = { .tv_sec = 5, .tv_usec = 0 };
     int nfds = 0;
 
     while (1) {
@@ -116,7 +116,10 @@ void *handle_connections(void *_self) {
         nfds = server_fd;
 
         /* Do cleanup, and simultaneously record connections in our fd_set. */
-        for (int i = 0; i < conn_buf_size(conns); i++) {
+        fprintf(stdout, INFO "%d doing cleanup on %d connections\n", self->id,
+                conn_buf_size(conn_buf));
+
+        for (int i = 0; i < conn_buf_size(conn_buf); i++) {
             conn_buf_at(conn_buf, i, &conn);
             if (conn == NULL || conn->state == CONN_CLEAN)
                 continue;
@@ -141,11 +144,14 @@ void *handle_connections(void *_self) {
                 nfds = conn->file_fd;
         }
 
+        fprintf(stdout, INFO "%d select(..) \n" , self->id);
         int res = 0;
-        if ((res = select(ndfs + 1, &read_fs, NULL, NULL, &timeout)) < 0) {
+        if ((res = select(nfds + 1, &read_fs, NULL, NULL, &timeout)) < 0) {
             fprintf(stderr, ERROR "Select failed (%s).\n", strerror(errno));
             exit(-1);
         }
+        
+        fprintf(stdout, INFO "%d wake(..) \n" , self->id);
 
         /* 0 means no file descriptors are active and the timeout woke us up */
         if (res == 0)
@@ -176,10 +182,10 @@ void *handle_connections(void *_self) {
         }
 
         /* Respond to sockets that are ready to be read from */
-        for (int i = 0; i < conn_buf_size(conns); i++) {
+        for (int i = 0; i < conn_buf_size(conn_buf); i++) {
             conn_buf_at(conn_buf, i, &conn);
-            if (conn == NULL || FD_ISSET(conn->client_fd, read_fs))
-                continue
+            if (conn == NULL || FD_ISSET(conn->client_fd, &read_fs))
+                continue;
 
             accept_request(conn);
         }

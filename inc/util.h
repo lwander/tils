@@ -54,7 +54,6 @@
 #define CACHE_LINE_SIZE (64)
 
 #define HTTP_PORT (80)
-#define THREAD_COUNT (1)
 #define REQUEST_BUF_SIZE (1 << 10)
 #define WORD_BUF_SIZE (1 << 7)
 

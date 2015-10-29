@@ -28,10 +28,12 @@
 
 #include <arpa/inet.h>
 
+#define TTL (60)
+
 #define CONNS_PER_THREAD (1000)
 
 #define CONN_BUF_ELEM_AT(i) ((i) % CONNS_PER_THREAD)
-#define CONN_BUF_ELEM_NEXT(c) (CONN_BUF_ELEM_NEXT((c) + 1))
+#define CONN_BUF_ELEM_NEXT(c) (CONN_BUF_ELEM_AT((c) + 1))
 
 typedef enum conn_state_e {
     /* Connection is totally closed, no dangling resources */
@@ -90,12 +92,13 @@ typedef struct conn_buf {
 } conn_buf_t;
 
 void conn_revitalize(conn_t *conn);
-int conn_is_alive(conn_t *conn);
+int conn_check_alive(conn_t *conn);
 conn_state conn_close(conn_t *conn);
 
 void conn_buf_init(conn_buf_t **conn_buf);
 conn_t *conn_buf_push(conn_buf_t *conn_buf, int client_fd, char *addr_buf);
 conn_state conn_buf_pop(conn_buf_t *conn_buf);
 void conn_buf_at(conn_buf_t *conn_buf, int i, conn_t **conn);
+int conn_buf_size(conn_buf_t *conn_buf);
 
 #endif /* _CONN_H_ */

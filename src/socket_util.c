@@ -29,6 +29,8 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
+#include <errno.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -36,7 +38,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <errno.h>
+#include <util.h>
 
 /**
  * @brief set keepalive state for input socket
@@ -51,7 +53,7 @@ int socket_keepalive(int sock) {
     /* Set keepalive status */
     if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen) < 0) {
         fprintf(stdout, ERROR "Unable to set keepalive to %d (%s)\n",
-                optval, strerr(errno));
+                optval, strerror(errno));
         return -1;
     }
 
@@ -106,7 +108,7 @@ int fd_blocking(int sock) {
 int fd_size(int fd) {
     struct stat st;
     int res;
-    if ((res = fstat(file_fd, &st)) < 0) {
+    if ((res = fstat(fd, &st)) < 0) {
         fprintf(stdout, ERROR "Getting file info (%s)\n", strerror(errno));
         return res;
     }

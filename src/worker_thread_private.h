@@ -32,8 +32,4 @@
 
 #include <util.h>
 
-static double _ttl = 60;
-
-#define LOG_HEALTH (1000000)
-
 #endif /* _WORKER_THREAD_PRIVATE_H_ */
