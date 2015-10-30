@@ -184,9 +184,10 @@ void *handle_connections(void *_self) {
         /* Respond to sockets that are ready to be read from */
         for (int i = 0; i < conn_buf_size(conn_buf); i++) {
             conn_buf_at(conn_buf, i, &conn);
-            if (conn == NULL || FD_ISSET(conn->client_fd, &read_fs))
+            if (conn == NULL || !FD_ISSET(conn->client_fd, &read_fs))
                 continue;
 
+            fprintf(stdout, INFO "%d accepting", self->id);
             accept_request(conn);
         }
     }
