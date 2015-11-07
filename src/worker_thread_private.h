@@ -32,4 +32,6 @@
 
 #include <util.h>
 
+#define LOG_FREQ (200000)
+
 #endif /* _WORKER_THREAD_PRIVATE_H_ */

@@ -110,15 +110,19 @@ void *handle_connections(void *_self) {
     struct timeval timeout = { .tv_sec = 5, .tv_usec = 0 };
     int nfds = 0;
 
+    int i = 0;
     while (1) {
+        i++;
         FD_ZERO(&read_fs);
         FD_SET(server_fd, &read_fs);
         nfds = server_fd;
 
-        /* Do cleanup, and simultaneously record connections in our fd_set. */
-        fprintf(stdout, INFO "%d doing cleanup on %d connections\n", self->id,
-                conn_buf_size(conn_buf));
+        if (i % LOG_FREQ == 0) {
+            fprintf(stdout, INFO "%d doing cleanup on %d connections\n", self->id,
+                    conn_buf_size(conn_buf));
+        }
 
+        /* Do cleanup, and simultaneously record connections in our fd_set. */
         for (int i = 0; i < conn_buf_size(conn_buf); i++) {
             conn_buf_at(conn_buf, i, &conn);
             if (conn == NULL || conn->state == CONN_CLEAN)
@@ -144,15 +148,12 @@ void *handle_connections(void *_self) {
                 nfds = conn->file_fd;
         }
 
-        fprintf(stdout, INFO "%d select(..) \n" , self->id);
         int res = 0;
         if ((res = select(nfds + 1, &read_fs, NULL, NULL, &timeout)) < 0) {
             fprintf(stderr, ERROR "Select failed (%s).\n", strerror(errno));
             exit(-1);
         }
         
-        fprintf(stdout, INFO "%d wake(..) \n" , self->id);
-
         /* 0 means no file descriptors are active and the timeout woke us up */
         if (res == 0)
             continue;
@@ -187,7 +188,6 @@ void *handle_connections(void *_self) {
             if (conn == NULL || !FD_ISSET(conn->client_fd, &read_fs))
                 continue;
 
-            fprintf(stdout, INFO "%d accepting", self->id);
             accept_request(conn);
         }
     }
@@ -206,9 +206,9 @@ void start_thread_pool(int server_fd) {
         _worker_threads[i].server_fd = server_fd;
         conn_buf_init(&_worker_threads[i].conns);
         _worker_threads[i].id = i + 1;
-        pthread_create(&_worker_threads[i].thread, NULL, handle_connections,
-                (void *)&_worker_threads[i]);
-    }
+        //pthread_create(&_worker_threads[i].thread, NULL, handle_connections,
+         //       (void *)&_worker_threads[i]);
+    } 
 
     wt_t master;
     master.server_fd = server_fd;
