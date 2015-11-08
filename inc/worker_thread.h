@@ -51,10 +51,10 @@ typedef struct {
     int size;
 
     /* FD to listen for the leader token */
-    int prev_fd;
+    int read_fd;
 
     /* FD to pass the leader token to */
-    int prev_fd;
+    int write_fd;
 } wt_t;
 
 void start_thread_pool(int server_fd);

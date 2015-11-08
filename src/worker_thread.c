@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -159,16 +160,12 @@ void *handle_connections(void *_self) {
         if (res == 0)
             continue;
 
-        if (server_fd >= 0 && FD_ISSET(server_fd, &read_fs) &&
-                (client_fd = accept(server_fd, (struct sockaddr *)&ip4client,
-                        &ip4client_len)) > 0) {
-            /* First pass the leader token on to the next thread.
-             * Note: You may wonder why I don't check that we have written
-             * sizeof(int) bytes since these are non-blocking pipes. However,
-             * a pipe has 4k bytes on linux, and passing the token in a 
-             * circle guarantees that none of those will be in use when I 
-             * go to pass the token along */
-            write(self->write_fd, &self->server_fd, sizeof(int));
+        if (self->server_fd >= 0 && FD_ISSET(self->server_fd, &read_fs) &&
+                (client_fd = accept(self->server_fd, 
+                                    (struct sockaddr *)&ip4client,
+                                    &ip4client_len)) > 0) {
+            /* First pass the leader token on to the next thread. */
+            assert(write(self->write_fd, &self->server_fd, sizeof(int)) > 0);
             self->server_fd = 0;
 
             /* Load the IP address for logging purposes */
@@ -193,10 +190,10 @@ void *handle_connections(void *_self) {
         }
 
         /* Is it our turn to become leader? */
-        if (FD_ISSET(self->read_fd, &read_fd)) {
-            read(self->read_fd, &self->server_fd, sizeof(int));
+        if (FD_ISSET(self->read_fd, &read_fs)) {
+            assert(read(self->read_fd, &self->server_fd, sizeof(int)) > 0);
             assert(self->server_fd >= 0);
-            fprintf(stdout, INFO, "NEW LEADER");
+            fprintf(stdout, INFO "NEW LEADER");
         }
 
         /* Respond to sockets that are ready to be read from. */
@@ -229,7 +226,7 @@ void start_thread_pool(int server_fd) {
         }
 
         /* Connect writer. */
-        _worker_threads[i].writer_fd = pipefd[0];
+        _worker_threads[i].write_fd = pipefd[0];
         /* Connect reader. */
         _worker_threads[(i + 1) % THREAD_COUNT].read_fd = pipefd[1];
 
