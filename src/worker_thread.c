@@ -128,7 +128,7 @@ void *handle_connections(void *_self) {
             if (conn == NULL || conn->state == CONN_CLEAN)
                 continue;
 
-            /* Update connection state */
+            /* Update connection state. */
             conn_check_alive(conn);
 
             if (conn->state == CONN_DEAD) {
@@ -154,7 +154,7 @@ void *handle_connections(void *_self) {
             exit(-1);
         }
         
-        /* 0 means no file descriptors are active and the timeout woke us up */
+        /* 0 means no file descriptors are active and the timeout woke us up. */
         if (res == 0)
             continue;
 
@@ -165,14 +165,14 @@ void *handle_connections(void *_self) {
             inet_ntop(AF_INET, (const void *)&ip4client.sin_addr, addr_buf,
                     INET_ADDRSTRLEN);
 
-            /* Keep alive can fail
-             * TODO if the error hints at a larger problem, do something here
+            /* Keep alive can fail.
+             * TODO if the error hints at a larger problem, do something here.
              */
             socket_keepalive(client_fd);
 
             if (fd_nonblocking(client_fd) < 0) {
                 /* If non blocking fails, every call to `accept' will take too
-                 * long. This connection is then no longer viable */
+                 * long. This connection is then no longer viable. */
                 close(client_fd);
             } else {
                 conn = conn_buf_push(conn_buf, client_fd, addr_buf);
@@ -182,7 +182,7 @@ void *handle_connections(void *_self) {
             }
         }
 
-        /* Respond to sockets that are ready to be read from */
+        /* Respond to sockets that are ready to be read from. */
         for (int i = 0; i < conn_buf_size(conn_buf); i++) {
             conn_buf_at(conn_buf, i, &conn);
             if (conn == NULL || !FD_ISSET(conn->client_fd, &read_fs))
@@ -192,28 +192,44 @@ void *handle_connections(void *_self) {
         }
     }
 
-    /* Just for you, compiler */
+    /* Just for you, compiler. */
     return NULL;
 }
 
 /**
  * @brief Run the thread pool - the master thread is roped into this as well.
  *
- * @param server_fd The server socket to listen on
+ * @param server_fd The server socket to listen on.
  */
 void start_thread_pool(int server_fd) {
-    for (int i = 0; i < THREAD_COUNT; i++) {
-        _worker_threads[i].server_fd = server_fd;
-        conn_buf_init(&_worker_threads[i].conns);
-        _worker_threads[i].id = i + 1;
-        //pthread_create(&_worker_threads[i].thread, NULL, handle_connections,
-         //       (void *)&_worker_threads[i]);
-    } 
+    int pipefd[2];
 
-    wt_t master;
-    master.server_fd = server_fd;
-    conn_buf_init(&master.conns);
-    master.id = 0;
-    master.size = 0;
-    handle_connections((void*)&master);
+    for (int i = 0; i < THREAD_COUNT; i++) {
+        if (pipe2(pipefd, O_NONBLOCK) < 0) {
+            fprintf(stderr, ERROR "Failed to create pipe between threads "
+                    "(%s)\n", strerror(errno));
+            exit(-1);
+        }
+
+        /* Connect writer. */
+        _worker_threads[i].writer_fd = pipefd[0];
+        /* Connect reader. */
+        _worker_threads[(i + 1) % THREAD_COUNT].read_fd = pipefd[1];
+
+        /* At first, thread 0 will be the leader. */
+        if (i == 0)
+            _worker_threads[i].server_fd = server_fd;
+        else 
+            _worker_threads[i].server_fd = 0;
+
+        conn_buf_init(&_worker_threads[i].conns);
+        _worker_threads[i].size = 0;
+
+        /* THREAD_COUNT - 1 is the calling thread. */
+        if (i == THREAD_COUNT - 1)
+            handle_connections((void *)&_worker_threads[i]);
+        else 
+            pthread_create(&_worker_threads[i].thread, NULL, handle_connections,
+                    (void *)&_worker_threads[i]);
+    } 
 }

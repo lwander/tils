@@ -50,8 +50,11 @@ typedef struct {
     /* Number of active connections */
     int size;
 
-    /* More sane ID than pthread_self() */
-    int id;
+    /* FD to listen for the leader token */
+    int prev_fd;
+
+    /* FD to pass the leader token to */
+    int prev_fd;
 } wt_t;
 
 void start_thread_pool(int server_fd);
