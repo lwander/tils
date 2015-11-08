@@ -100,7 +100,6 @@ void *handle_connections(void *_self) {
     unsigned int ip4client_len = sizeof(ip4client);
 
     int client_fd = 0;
-    int server_fd = self->server_fd;
 
     char addr_buf[INET_ADDRSTRLEN];
     conn_t *conn = NULL;
@@ -110,17 +109,18 @@ void *handle_connections(void *_self) {
     struct timeval timeout = { .tv_sec = 5, .tv_usec = 0 };
     int nfds = 0;
 
-    int i = 0;
     while (1) {
-        i++;
         FD_ZERO(&read_fs);
-        FD_SET(server_fd, &read_fs);
-        nfds = server_fd;
 
-        if (i % LOG_FREQ == 0) {
-            fprintf(stdout, INFO "%d doing cleanup on %d connections\n", self->id,
-                    conn_buf_size(conn_buf));
+        /* Are we the leader? */
+        if (self->server_fd >= 0) {
+            FD_SET(self->server_fd, &read_fs);
+            nfds = self->server_fd;
         }
+
+        FD_SET(self->read_fd, &read_fs);
+        if (self->read_fd > nfds)
+            nfds = self->read_fd;
 
         /* Do cleanup, and simultaneously record connections in our fd_set. */
         for (int i = 0; i < conn_buf_size(conn_buf); i++) {
@@ -142,14 +142,15 @@ void *handle_connections(void *_self) {
             if (conn->client_fd > nfds)
                 nfds = conn->client_fd;
 
-            if (conn->file_fd >= 0)
+            if (LIKELY(conn->file_fd >= 0))
                 FD_SET(conn->file_fd, &read_fs);
             if (conn->file_fd > nfds)
                 nfds = conn->file_fd;
         }
 
         int res = 0;
-        if ((res = select(nfds + 1, &read_fs, NULL, NULL, &timeout)) < 0) {
+        if (UNLIKELY((res = select(nfds + 1, &read_fs, 
+                            NULL, NULL, &timeout)) < 0)) {
             fprintf(stderr, ERROR "Select failed (%s).\n", strerror(errno));
             exit(-1);
         }
@@ -158,8 +159,17 @@ void *handle_connections(void *_self) {
         if (res == 0)
             continue;
 
-        if ((client_fd = accept(server_fd, (struct sockaddr *)&ip4client,
+        if (server_fd >= 0 && FD_ISSET(server_fd, &read_fs) &&
+                (client_fd = accept(server_fd, (struct sockaddr *)&ip4client,
                         &ip4client_len)) > 0) {
+            /* First pass the leader token on to the next thread.
+             * Note: You may wonder why I don't check that we have written
+             * sizeof(int) bytes since these are non-blocking pipes. However,
+             * a pipe has 4k bytes on linux, and passing the token in a 
+             * circle guarantees that none of those will be in use when I 
+             * go to pass the token along */
+            write(self->write_fd, &self->server_fd, sizeof(int));
+            self->server_fd = 0;
 
             /* Load the IP address for logging purposes */
             inet_ntop(AF_INET, (const void *)&ip4client.sin_addr, addr_buf,
@@ -170,7 +180,7 @@ void *handle_connections(void *_self) {
              */
             socket_keepalive(client_fd);
 
-            if (fd_nonblocking(client_fd) < 0) {
+            if (UNLIKELY(fd_nonblocking(client_fd) < 0)) {
                 /* If non blocking fails, every call to `accept' will take too
                  * long. This connection is then no longer viable. */
                 close(client_fd);
@@ -180,6 +190,13 @@ void *handle_connections(void *_self) {
                 fprintf(stdout, ANSI_BOLD ANSI_GREEN  "-->  " ANSI_BLUE "%s\n"
                         ANSI_RESET, addr_buf);
             }
+        }
+
+        /* Is it our turn to become leader? */
+        if (FD_ISSET(self->read_fd, &read_fd)) {
+            read(self->read_fd, &self->server_fd, sizeof(int));
+            assert(self->server_fd >= 0);
+            fprintf(stdout, INFO, "NEW LEADER");
         }
 
         /* Respond to sockets that are ready to be read from. */
