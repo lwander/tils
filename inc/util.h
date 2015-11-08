@@ -59,4 +59,7 @@
 
 #define TIME_NOW (((double) (clock())) / CLOCKS_PER_SEC)
 
+#define LIKELY(x)       __builtin_expect((x),1)
+#define UNLIKELY(x)     __builtin_expect((x),0)
+
 #endif /* _UTIL_H_ */
