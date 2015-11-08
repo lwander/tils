@@ -49,28 +49,22 @@ static int _server_fd;
 #include <socket_util.h>
 #include <worker_thread.h>
 
-void sigint_handler(int unused) {
-    fprintf(stdout, "Shutting down `gracefully'\n");
-    close(_server_fd);
-    exit(-1);
-}
-
 /**
  * @brief Bind server to HTTP TCP socket.
  *
  * @return -1 on error, the server file descriptor otherwise.
  */
-int init_server() {
+int init_server(int port) {
     struct sockaddr_in ip4server;
     int server_fd = 0;
 
     ip4server.sin_family = AF_INET; /* Address family internet */
-    ip4server.sin_port = htons(HTTP_PORT); /* Bind to port 80 */
+    ip4server.sin_port = htons(port); /* Bind to given port */
     ip4server.sin_addr.s_addr = htonl(INADDR_ANY);  /* Bind to any interface */
 
     /* Get a file descriptor for our socket */
     if ((server_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        fprintf(stdout, ERROR "Unable to create socket "
+        fprintf(stderr, ERROR "Unable to create socket "
                 ANSI_RESET "(%s)\n", strerror(errno));
         goto fail;
     }
@@ -87,7 +81,7 @@ int init_server() {
 
     /* Bind the socket file descriptor to our network interface */
     if (bind(server_fd, (struct sockaddr *)&ip4server, sizeof(ip4server)) < 0) {
-        fprintf(stdout, ERROR "Unable to bind socket "
+        fprintf(stderr, ERROR "Unable to bind socket "
                 ANSI_RESET "(%s)\n", strerror(errno));
         goto cleanup_socket;
     }
@@ -95,7 +89,7 @@ int init_server() {
     /* Listen for connections on this socket. AFAIK, the second argument
      * (backlog) is a suggestion, not a hard value. */
     if (listen(server_fd, 16) < 0) {
-        fprintf(stdout, ERROR "Unable to listen on socket "
+        fprintf(stderr, ERROR "Unable to listen on socket "
                 ANSI_RESET "(%s)\n", strerror(errno));
         goto cleanup_socket;
     }
@@ -113,10 +107,17 @@ fail:
 int main(int argc, char *argv[]) {
     int server_fd = 0;
     int res = 0;
+    int port = 80;
 
-    struct sigaction sigact;
-    sigact.sa_handler = sigint_handler;
-    sigaction(SIGINT, &sigact, NULL);
+    if (argc > 1) {
+        char *end = NULL;
+        long res = strtol(argv[1], &end, 10);
+        if (*end != '\0' || res < 0 || res >= (1 << 16) - 1) {
+            fprintf(stderr, ERROR "Invalid port (%s)\n", strerror(errno));
+            exit(-1);
+        }
+        port = (int)res;
+    }
 
     fprintf(stdout, "Building routes...\n");
     if (init_routes() < 0 || 
@@ -129,8 +130,8 @@ int main(int argc, char *argv[]) {
         goto cleanup_routes;
     } 
 
-    fprintf(stdout, "Opening connection...\n");
-    if ((server_fd = init_server()) < 0) {
+    fprintf(stdout, "Opening connection on port %d...\n", port);
+    if ((server_fd = init_server(port)) < 0) {
         fprintf(stdout, "failed.\n");
         res = -1;
         goto cleanup_routes;

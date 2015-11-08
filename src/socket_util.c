@@ -52,7 +52,7 @@ int socket_keepalive(int sock) {
     socklen_t optlen = sizeof(optval);
     /* Set keepalive status */
     if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen) < 0) {
-        fprintf(stdout, ERROR "Unable to set keepalive to %d (%s)\n",
+        fprintf(stderr, ERROR "Unable to set keepalive to %d (%s)\n",
                 optval, strerror(errno));
         return -1;
     }
@@ -71,7 +71,7 @@ int fd_nonblocking(int sock) {
     int res;
     if ((res = fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | 
                     O_NONBLOCK)) < 0) {
-        fprintf(stdout, ERROR "Unable set status to non-blocking (%s)\n",
+        fprintf(stderr, ERROR "Unable set status to non-blocking (%s)\n",
                 strerror(errno));
         return res;
     }
@@ -90,7 +90,7 @@ int fd_blocking(int sock) {
     int res;
     if ((res = fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) & 
                     ~O_NONBLOCK)) < 0) {
-        fprintf(stdout, ERROR "Unable set status to blocking (%s)\n",
+        fprintf(stderr, ERROR "Unable set status to blocking (%s)\n",
                 strerror(errno));
         return res;
     }
@@ -109,7 +109,7 @@ int fd_size(int fd) {
     struct stat st;
     int res;
     if ((res = fstat(fd, &st)) < 0) {
-        fprintf(stdout, ERROR "Getting file info (%s)\n", strerror(errno));
+        fprintf(stderr, ERROR "Getting file info (%s)\n", strerror(errno));
         return res;
     }
 
