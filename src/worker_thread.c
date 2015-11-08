@@ -165,8 +165,12 @@ void *handle_connections(void *_self) {
                                     (struct sockaddr *)&ip4client,
                                     &ip4client_len)) > 0) {
             /* First pass the leader token on to the next thread. */
-            assert(write(self->write_fd, &self->server_fd, sizeof(int)) > 0);
-            self->server_fd = 0;
+            if (write(self->write_fd, &self->server_fd, sizeof(int)) <= 0) {
+                fprintf(stderr, ERROR "Failed to pass token (%s).\n", 
+                        strerror(errno));
+                exit(-1);
+            }
+            self->server_fd = -1;
 
             /* Load the IP address for logging purposes */
             inet_ntop(AF_INET, (const void *)&ip4client.sin_addr, addr_buf,
@@ -191,7 +195,11 @@ void *handle_connections(void *_self) {
 
         /* Is it our turn to become leader? */
         if (FD_ISSET(self->read_fd, &read_fs)) {
-            assert(read(self->read_fd, &self->server_fd, sizeof(int)) > 0);
+            if (read(self->read_fd, &self->server_fd, sizeof(int)) <= 0) {
+                fprintf(stderr, ERROR "Failed to get token (%s).\n", 
+                        strerror(errno));
+                exit(-1);
+            }
             assert(self->server_fd >= 0);
             fprintf(stdout, INFO "NEW LEADER");
         }
@@ -219,22 +227,24 @@ void start_thread_pool(int server_fd) {
     int pipefd[2];
 
     for (int i = 0; i < THREAD_COUNT; i++) {
-        if (pipe2(pipefd, O_NONBLOCK) < 0) {
+        if (pipe(pipefd) < 0) {
             fprintf(stderr, ERROR "Failed to create pipe between threads "
-                    "(%s)\n", strerror(errno));
+                    "(%s).\n", strerror(errno));
             exit(-1);
         }
 
+        _worker_threads[i].id = i;
+
         /* Connect writer. */
-        _worker_threads[i].write_fd = pipefd[0];
+        _worker_threads[i].write_fd = pipefd[1];
         /* Connect reader. */
-        _worker_threads[(i + 1) % THREAD_COUNT].read_fd = pipefd[1];
+        _worker_threads[(i + 1) % THREAD_COUNT].read_fd = pipefd[0];
 
         /* At first, thread 0 will be the leader. */
         if (i == 0)
             _worker_threads[i].server_fd = server_fd;
         else 
-            _worker_threads[i].server_fd = 0;
+            _worker_threads[i].server_fd = -1;
 
         conn_buf_init(&_worker_threads[i].conns);
         _worker_threads[i].size = 0;

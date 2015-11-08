@@ -28,7 +28,7 @@
 
 #include <conn.h>
 
-#define THREAD_COUNT (1)
+#define THREAD_COUNT (2)
 
 /**
  * @brief Worker thread struct implementation.
@@ -55,6 +55,9 @@ typedef struct {
 
     /* FD to pass the leader token to */
     int write_fd;
+
+    /* Readable ID */
+    int id;
 } wt_t;
 
 void start_thread_pool(int server_fd);
