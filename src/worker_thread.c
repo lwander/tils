@@ -107,10 +107,12 @@ void *handle_connections(void *_self) {
     conn_buf_t *conn_buf = self->conns;
 
     fd_set read_fs;
-    struct timeval timeout = { .tv_sec = 5, .tv_usec = 0 };
     int nfds = 0;
 
+    int i = 0;
     while (1) {
+        struct timeval timeout = { .tv_sec = 5, .tv_usec = 0 };
+        i++;
         FD_ZERO(&read_fs);
 
         /* Are we the leader? */
@@ -156,6 +158,8 @@ void *handle_connections(void *_self) {
             exit(-1);
         }
         
+        if (i % LOG_FREQ == 0)
+            fprintf(stdout, INFO "[%d] on %d\n", self->id, res);
         /* 0 means no file descriptors are active and the timeout woke us up. */
         if (res == 0)
             continue;

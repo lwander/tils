@@ -65,7 +65,7 @@ int init_server(int port) {
     /* Get a file descriptor for our socket */
     if ((server_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         fprintf(stderr, ERROR "Unable to create socket "
-                ANSI_RESET "(%s)\n", strerror(errno));
+                "(%s)\n", strerror(errno));
         goto fail;
     }
 
@@ -81,8 +81,7 @@ int init_server(int port) {
 
     /* Bind the socket file descriptor to our network interface */
     if (bind(server_fd, (struct sockaddr *)&ip4server, sizeof(ip4server)) < 0) {
-        fprintf(stderr, ERROR "Unable to bind socket "
-                ANSI_RESET "(%s)\n", strerror(errno));
+        fprintf(stderr, ERROR "Unable to bind socket (%s)\n", strerror(errno));
         goto cleanup_socket;
     }
 
@@ -90,7 +89,7 @@ int init_server(int port) {
      * (backlog) is a suggestion, not a hard value. */
     if (listen(server_fd, 16) < 0) {
         fprintf(stderr, ERROR "Unable to listen on socket "
-                ANSI_RESET "(%s)\n", strerror(errno));
+                "(%s)\n", strerror(errno));
         goto cleanup_socket;
     }
 
@@ -113,7 +112,7 @@ int main(int argc, char *argv[]) {
         char *end = NULL;
         long res = strtol(argv[1], &end, 10);
         if (*end != '\0' || res < 0 || res >= (1 << 16) - 1) {
-            fprintf(stderr, ERROR "Invalid port (%s)\n", strerror(errno));
+            fprintf(stderr, ERROR "Invalid port %s\n", argv[1]);
             exit(-1);
         }
         port = (int)res;
