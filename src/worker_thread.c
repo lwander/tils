@@ -145,6 +145,10 @@ void *handle_connections(void *_self) {
             if (conn->client_fd > nfds)
                 nfds = conn->client_fd;
 
+            /* Listen to the file_fd as well, since we are using non-blocking
+             * IO to serve resources (meaning a fetch from disk could have 
+             * stopped halfway through, and we don't want to have every other
+             * connection wait until it's done, so we register it here). */
             if (LIKELY(conn->file_fd >= 0))
                 FD_SET(conn->file_fd, &read_fs);
             if (conn->file_fd > nfds)
@@ -164,11 +168,19 @@ void *handle_connections(void *_self) {
         if (res == 0)
             continue;
 
+        /* If our server_fd (leader token)  is positive, 
+         * we can accept connections */
         if (self->server_fd >= 0 && FD_ISSET(self->server_fd, &read_fs) &&
                 (client_fd = accept(self->server_fd, 
                                     (struct sockaddr *)&ip4client,
                                     &ip4client_len)) > 0) {
-            /* First pass the leader token on to the next thread. */
+            /* First pass the leader token on to the next thread. 
+             * This wakes up the next thread in the token chain, causing it 
+             * to listen for unopened connections. If it is already awake,
+             * it will either: 
+             * 1. Discover it can read from read_fd, and start listening on
+             *    it's newly assigned server_fd.
+             * 2. Not read from read_fd, call select, and wake up at once. */
             if (write(self->write_fd, &self->server_fd, sizeof(int)) <= 0) {
                 fprintf(stderr, ERROR "Failed to pass token (%s).\n", 
                         strerror(errno));
@@ -176,7 +188,7 @@ void *handle_connections(void *_self) {
             }
             self->server_fd = -1;
 
-            /* Load the IP address for logging purposes */
+            /* Load the IP address for logging purposes. */
             inet_ntop(AF_INET, (const void *)&ip4client.sin_addr, addr_buf,
                     INET_ADDRSTRLEN);
 
