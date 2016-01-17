@@ -30,7 +30,7 @@
 
 #define TTL (60)
 
-#define CONNS_PER_THREAD (1000)
+#define CONNS_PER_THREAD (2)
 
 #define CONN_BUF_ELEM_AT(i) ((i) % CONNS_PER_THREAD)
 #define CONN_BUF_ELEM_NEXT(c) (CONN_BUF_ELEM_AT((c) + 1))
@@ -58,9 +58,6 @@ typedef struct conn {
 
     /* fd corresponding to socket client is on. */
     int client_fd;
-
-    /* fd corresponding to file being served (-1 if no such file). */
-    int file_fd;
 
     /* ipv4 address of client - used for logging purposes. */
     char addr_buf[INET_ADDRSTRLEN];

@@ -145,14 +145,6 @@ void *handle_connections(void *_self) {
             if (conn->client_fd > nfds)
                 nfds = conn->client_fd;
 
-            /* Listen to the file_fd as well, since we are using non-blocking
-             * IO to serve resources (meaning a fetch from disk could have 
-             * stopped halfway through, and we don't want to have every other
-             * connection wait until it's done, so we register it here). */
-            if (LIKELY(conn->file_fd >= 0))
-                FD_SET(conn->file_fd, &read_fs);
-            if (conn->file_fd > nfds)
-                nfds = conn->file_fd;
         }
 
         int res = 0;

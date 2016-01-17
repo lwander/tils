@@ -46,7 +46,6 @@ void conn_new(int client_fd, char *addr_buf, conn_t *conn) {
     conn->client_fd = client_fd;
     conn->last_alive = TIME_NOW;
     conn->state = CONN_ALIVE;
-    conn->file_fd = -1;
     memcpy(conn->addr_buf, addr_buf, sizeof(conn->addr_buf));
 }
 
@@ -90,10 +89,6 @@ conn_state conn_close(conn_t *conn) {
     conn_state res = conn->state;
     if (res != CONN_CLEAN) {
         close(conn->client_fd);
-
-        if (conn->file_fd >= 0) {
-            close(conn->file_fd);
-        }
 
         /* TODO Log forced death here */
         conn->state = CONN_CLEAN;
