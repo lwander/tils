@@ -43,7 +43,7 @@ typedef struct {
     pthread_t thread __attribute__((aligned(CACHE_LINE_SIZE)));
 
     /* List of managed connections */
-    conn_buf_t *conns;
+    tils_conn_buf_t *conns;
     
     /* File descriptor to listen to new connections on */
     int server_fd;

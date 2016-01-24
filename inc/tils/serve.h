@@ -60,6 +60,6 @@ int read_word(char *ibuf, int ibuf_len, char *obuf, int obuf_len,
 int next_word(char *buf, int buf_len, int index);
 
 http_request_t request_type(char *request, int request_len);
-void serve_resource(conn_t *conn, http_request_t http_request, char *resource);
+void serve_resource(tils_conn_t *conn, http_request_t http_request, char *resource);
 
 #endif /* _SERVE_H_ */

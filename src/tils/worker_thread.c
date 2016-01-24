@@ -55,7 +55,7 @@ static wt_t _worker_threads[THREAD_COUNT];
  * @brief Process the type of HTTP request, and respond accordingly.
  * * @param conn Connection being communicated with
  */
-void accept_request(conn_t *conn) {
+void accept_request(tils_conn_t *conn) {
     char request[REQUEST_BUF_SIZE];
     char word[WORD_BUF_SIZE];
     char resource[WORD_BUF_SIZE];
@@ -70,7 +70,7 @@ void accept_request(conn_t *conn) {
     if (request_len <= 0)
         return;
 
-    conn_revitalize(conn);
+    tils_conn_revitalize(conn);
 
     /* Start parsing it word by word */
     /* TODO More robust parsing of requests */
@@ -103,8 +103,8 @@ void *handle_connections(void *_self) {
     int client_fd = 0;
 
     char addr_buf[INET_ADDRSTRLEN];
-    conn_t *conn = NULL;
-    conn_buf_t *conn_buf = self->conns;
+    tils_conn_t *conn = NULL;
+    tils_conn_buf_t *conn_buf = self->conns;
 
     fd_set read_fs;
     int nfds = 0;
@@ -126,18 +126,18 @@ void *handle_connections(void *_self) {
             nfds = self->read_fd;
 
         /* Do cleanup, and simultaneously record connections in our fd_set. */
-        for (int i = 0; i < conn_buf_size(conn_buf); i++) {
-            conn_buf_at(conn_buf, i, &conn);
+        for (int i = 0; i < tils_conn_buf_size(conn_buf); i++) {
+            tils_conn_buf_at(conn_buf, i, &conn);
             if (conn == NULL || conn->state == CONN_CLEAN)
                 continue;
 
             /* Update connection state. */
-            conn_check_alive(conn);
+            tils_conn_check_alive(conn);
 
             if (conn->state == CONN_DEAD) {
                 fprintf(stdout, ANSI_BOLD ANSI_YELLOW "-/-> " ANSI_BLUE "%s\n"
                         ANSI_RESET, conn->addr_buf);
-                conn_close(conn);
+                tils_conn_close(conn);
                 continue;
             }
 
@@ -193,7 +193,7 @@ void *handle_connections(void *_self) {
                  * long. This connection is then no longer viable. */
                 close(client_fd);
             } else {
-                conn = conn_buf_push(conn_buf, client_fd, addr_buf);
+                conn = tils_conn_buf_push(conn_buf, client_fd, addr_buf);
                 accept_request(conn);
                 fprintf(stdout, ANSI_BOLD ANSI_GREEN  "-->  " ANSI_BLUE "%s\n"
                         ANSI_RESET, addr_buf);
@@ -212,8 +212,8 @@ void *handle_connections(void *_self) {
         }
 
         /* Respond to sockets that are ready to be read from. */
-        for (int i = 0; i < conn_buf_size(conn_buf); i++) {
-            conn_buf_at(conn_buf, i, &conn);
+        for (int i = 0; i < tils_conn_buf_size(conn_buf); i++) {
+            tils_conn_buf_at(conn_buf, i, &conn);
             if (conn == NULL || !FD_ISSET(conn->client_fd, &read_fs))
                 continue;
 
@@ -253,7 +253,7 @@ void start_thread_pool(int server_fd) {
         else 
             _worker_threads[i].server_fd = -1;
 
-        conn_buf_init(&_worker_threads[i].conns);
+        tils_conn_buf_init(&_worker_threads[i].conns);
         _worker_threads[i].size = 0;
 
         /* THREAD_COUNT - 1 is the calling thread. */

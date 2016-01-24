@@ -42,7 +42,7 @@
  *
  * @return The new connection object. NULL on error.
  */
-void conn_new(int client_fd, char *addr_buf, conn_t *conn) {
+void tils_conn_new(int client_fd, char *addr_buf, tils_conn_t *conn) {
     conn->client_fd = client_fd;
     conn->last_alive = TIME_NOW;
     conn->state = CONN_ALIVE;
@@ -54,7 +54,7 @@ void conn_new(int client_fd, char *addr_buf, conn_t *conn) {
  *
  * @param conn The connection being updated.
  */
-void conn_revitalize(conn_t *conn) {
+void tils_conn_revitalize(tils_conn_t *conn) {
     conn->last_alive = TIME_NOW;
 }
 
@@ -67,7 +67,7 @@ void conn_revitalize(conn_t *conn) {
  *
  * @return 1 if true, 0 otherwise.
  */
-int conn_check_alive(conn_t *conn) {
+int tils_conn_check_alive(tils_conn_t *conn) {
     if (conn->state == CONN_DEAD || conn->state == CONN_CLEAN) {
         return 0;
     } else if (TIME_NOW - conn->last_alive >= TTL) {
@@ -85,8 +85,8 @@ int conn_check_alive(conn_t *conn) {
  *
  * @return The original state of conn before close.
  */
-conn_state conn_close(conn_t *conn) {
-    conn_state res = conn->state;
+tils_conn_state tils_conn_close(tils_conn_t *conn) {
+    tils_conn_state res = conn->state;
     if (res != CONN_CLEAN) {
         close(conn->client_fd);
 
@@ -106,14 +106,14 @@ conn_state conn_close(conn_t *conn) {
  *
  * @return The connection that was added
  */
-conn_t *conn_buf_push(conn_buf_t *conn_buf, int client_fd, char *addr_buf) {
+tils_conn_t *tils_conn_buf_push(tils_conn_buf_t *conn_buf, int client_fd, char *addr_buf) {
     /* First safely evict existing connection (if we are full) */
     if (conn_buf->size == CONNS_PER_THREAD)
-        conn_buf_pop(conn_buf);
+        tils_conn_buf_pop(conn_buf);
 
-    conn_new(client_fd, addr_buf, &conn_buf->conns[conn_buf->end]);
-    conn_t *res = &conn_buf->conns[conn_buf->end];
-    conn_buf->end = CONN_BUF_ELEM_NEXT(conn_buf->end);
+    tils_conn_new(client_fd, addr_buf, &conn_buf->conns[conn_buf->end]);
+    tils_conn_t *res = &conn_buf->conns[conn_buf->end];
+    conn_buf->end = TILS_CONN_BUF_ELEM_NEXT(conn_buf->end);
     conn_buf->size++;
 
     return res;
@@ -129,13 +129,13 @@ conn_t *conn_buf_push(conn_buf_t *conn_buf, int client_fd, char *addr_buf) {
  *         operation being carried out, unless the buffer was empty,
  *         in which case return CONN_NONE.
  */
-conn_state conn_buf_pop(conn_buf_t *conn_buf) {
+tils_conn_state tils_conn_buf_pop(tils_conn_buf_t *conn_buf) {
     if (conn_buf->size == 0)
         return CONN_NONE;
 
-    conn_state res = conn_buf->conns[conn_buf->start].state;
-    conn_close(&conn_buf->conns[conn_buf->start]);
-    conn_buf->start = CONN_BUF_ELEM_NEXT(conn_buf->start);
+    tils_conn_state res = conn_buf->conns[conn_buf->start].state;
+    tils_conn_close(&conn_buf->conns[conn_buf->start]);
+    conn_buf->start = TILS_CONN_BUF_ELEM_NEXT(conn_buf->start);
     conn_buf->size--;
 
     return res;
@@ -149,11 +149,11 @@ conn_state conn_buf_pop(conn_buf_t *conn_buf) {
  * @param[out] conn_buf A non-null pointer that will store the result of the
  *             lookup. If we specify an invalid index, it will point to NULL.
  */
-void conn_buf_at(conn_buf_t *conn_buf, int i, conn_t **conn) {
+void tils_conn_buf_at(tils_conn_buf_t *conn_buf, int i, tils_conn_t **conn) {
     if (i >= conn_buf->size)
         *conn = NULL;
     else
-        *conn = &conn_buf->conns[CONN_BUF_ELEM_AT(conn_buf->start + i)];
+        *conn = &conn_buf->conns[TILS_CONN_BUF_ELEM_AT(conn_buf->start + i)];
 }
 
 /**
@@ -164,8 +164,8 @@ void conn_buf_at(conn_buf_t *conn_buf, int i, conn_t **conn) {
  *
  * @param conn_buf A pointer to the connection buffer to be initialized
  */
-void conn_buf_init(conn_buf_t **conn_buf) {
-    *conn_buf = calloc(sizeof(conn_buf_t), 1);
+void tils_conn_buf_init(tils_conn_buf_t **conn_buf) {
+    *conn_buf = calloc(sizeof(tils_conn_buf_t), 1);
 
     if (*conn_buf == NULL) {
         fprintf(stderr, ERROR "No memory for initialization of connection "
@@ -179,6 +179,6 @@ void conn_buf_init(conn_buf_t **conn_buf) {
  *
  * @param conn_buf The connection buffer being examined.
  */
-int conn_buf_size(conn_buf_t *conn_buf) {
+int tils_conn_buf_size(tils_conn_buf_t *conn_buf) {
     return conn_buf->size;
 }

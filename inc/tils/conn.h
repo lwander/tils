@@ -23,8 +23,8 @@
  * @author Lars Wander
  */
 
-#ifndef _CONN_H_
-#define _CONN_H_
+#ifndef _TILS_CONN_H_
+#define _TILS_CONN_H_
 
 #include <arpa/inet.h>
 
@@ -32,10 +32,10 @@
 
 #define CONNS_PER_THREAD (2)
 
-#define CONN_BUF_ELEM_AT(i) ((i) % CONNS_PER_THREAD)
-#define CONN_BUF_ELEM_NEXT(c) (CONN_BUF_ELEM_AT((c) + 1))
+#define TILS_CONN_BUF_ELEM_AT(i) ((i) % CONNS_PER_THREAD)
+#define TILS_CONN_BUF_ELEM_NEXT(c) (TILS_CONN_BUF_ELEM_AT((c) + 1))
 
-typedef enum conn_state_e {
+typedef enum tils_conn_state_e {
     /* Connection is totally closed, no dangling resources */
     CONN_CLEAN = 0,
 
@@ -47,12 +47,12 @@ typedef enum conn_state_e {
 
     /* Not a connection */
     CONN_NONE
-} conn_state;
+} tils_conn_state;
 
 /**
  * @brief A single connection handled by a single thread
  */
-typedef struct conn {
+typedef struct tils_conn {
     /* Last alive time (used for keepalive). */
     double last_alive;
 
@@ -64,8 +64,8 @@ typedef struct conn {
 
     /* Connection can be marked as dead and cleaned up lazily using this flag.
      */
-    conn_state state;
-} conn_t;
+    tils_conn_state state;
+} tils_conn_t;
 
 /**
  * @brief Used to store all connections that belong to a thread
@@ -74,9 +74,9 @@ typedef struct conn {
  * max number of connections we can through away the oldest to make room
  * for the next.
  */
-typedef struct conn_buf {
+typedef struct tils_conn_buf {
     /* All connections in buffer */
-    conn_t conns[CONNS_PER_THREAD];
+    tils_conn_t conns[CONNS_PER_THREAD];
 
     /* Index of first connection held. */
     int start;
@@ -86,16 +86,16 @@ typedef struct conn_buf {
 
     /* Current size of buffer */
     int size;
-} conn_buf_t;
+} tils_conn_buf_t;
 
-void conn_revitalize(conn_t *conn);
-int conn_check_alive(conn_t *conn);
-conn_state conn_close(conn_t *conn);
+void tils_conn_revitalize(tils_conn_t *conn);
+int tils_conn_check_alive(tils_conn_t *conn);
+tils_conn_state tils_conn_close(tils_conn_t *conn);
 
-void conn_buf_init(conn_buf_t **conn_buf);
-conn_t *conn_buf_push(conn_buf_t *conn_buf, int client_fd, char *addr_buf);
-conn_state conn_buf_pop(conn_buf_t *conn_buf);
-void conn_buf_at(conn_buf_t *conn_buf, int i, conn_t **conn);
-int conn_buf_size(conn_buf_t *conn_buf);
+void tils_conn_buf_init(tils_conn_buf_t **conn_buf);
+tils_conn_t *tils_conn_buf_push(tils_conn_buf_t *conn_buf, int client_fd, char *addr_buf);
+tils_conn_state tils_conn_buf_pop(tils_conn_buf_t *conn_buf);
+void tils_conn_buf_at(tils_conn_buf_t *conn_buf, int i, tils_conn_t **conn);
+int tils_conn_buf_size(tils_conn_buf_t *conn_buf);
 
-#endif /* _CONN_H_ */
+#endif /* _TILS_CONN_H_ */

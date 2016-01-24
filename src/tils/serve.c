@@ -160,7 +160,7 @@ char *get_content_type(char *filename, int filename_len) {
  *
  * @param client_fd The client being communicated with
  */
-void serve_unimplemented(conn_t *conn) {
+void serve_unimplemented(tils_conn_t *conn) {
     fprintf(stdout, ANSI_BLUE "%s <- " ANSI_YELLOW ANSI_BOLD "501\n" ANSI_RESET,
             conn->addr_buf);
     send_to_client(conn->client_fd, (char *)msg_unimplemented);
@@ -171,13 +171,13 @@ void serve_unimplemented(conn_t *conn) {
  *
  * @param client_fd The client being communicated with
  */
-void serve_not_found(conn_t *conn) {
+void serve_not_found(tils_conn_t *conn) {
     fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RED ANSI_BOLD "404\n" ANSI_RESET,
             conn->addr_buf);
     send_to_client(conn->client_fd, (char *)msg_not_found);
 }
 
-void serve_file(conn_t *conn, int file_fd, char *content_type, int size) {
+void serve_file(tils_conn_t *conn, int file_fd, char *content_type, int size) {
     send_to_client(conn->client_fd, (char *)header_file, content_type, size);
 
     char buf[REQUEST_BUF_SIZE];
@@ -206,7 +206,7 @@ void serve_file(conn_t *conn, int file_fd, char *content_type, int size) {
     fprintf(stdout, "\n");
 }
 
-void serve_resource(conn_t *conn, http_request_t http_request, char *resource) {
+void serve_resource(tils_conn_t *conn, http_request_t http_request, char *resource) {
     if (http_request != GET) {
         serve_unimplemented(conn);
         return;
