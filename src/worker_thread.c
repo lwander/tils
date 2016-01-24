@@ -144,7 +144,6 @@ void *handle_connections(void *_self) {
             FD_SET(conn->client_fd, &read_fs);
             if (conn->client_fd > nfds)
                 nfds = conn->client_fd;
-
         }
 
         int res = 0;

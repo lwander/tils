@@ -15,7 +15,7 @@ TEST_EXECUTABLE=test-c-http
 
 # Files needed only by c-http executable
 LCC_SRCS=main.c routes.c worker_thread.c socket_util.c serve.c conn.c \
-	lib/hashtable.c 
+	lw-http.c lib/hashtable.c 
 
 # Files required by unit tests & c-http executable
 SHRD_SRCS=
