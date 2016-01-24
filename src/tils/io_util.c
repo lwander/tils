@@ -16,9 +16,9 @@
  */
 
 /**
- * @file src/socket_util.c
+ * @file src/io_util.c
  *
- * @brief Abstract more common socket manipulation here
+ * @brief Abstract more common IO handler manipulation here
  *
  * @author Lars Wander (lars.wander@gmail.com)
  */
@@ -38,7 +38,7 @@
 #include <arpa/inet.h>
 
 #include <lib/util.h>
-#include <tils/socket_util.h>
+#include <tils/io_util.h>
 
 /**
  * @brief set keepalive state for input socket
@@ -47,7 +47,7 @@
  *
  * @return 0 on success, < 0 otherwise
  */
-int socket_keepalive(int sock) {
+int tils_socket_keepalive(int sock) {
     int optval = 1;
     socklen_t optlen = sizeof(optval);
     /* Set keepalive status */
@@ -63,13 +63,13 @@ int socket_keepalive(int sock) {
 /**
  * @brief Set fd to not block on accept/read/recv/send
  *
- * @param sock The fd being modified
+ * @param fd The fd being modified
  *
  * @return 0 on success, < 0 otherwise
  */
-int fd_nonblocking(int sock) {
+int tils_fd_nonblocking(int fd) {
     int res;
-    if ((res = fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | 
+    if ((res = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) |
                     O_NONBLOCK)) < 0) {
         fprintf(stderr, ERROR "Unable set status to non-blocking (%s)\n",
                 strerror(errno));
@@ -82,13 +82,13 @@ int fd_nonblocking(int sock) {
 /**
  * @brief Set fd to block on accept/read/recv/etc
  *
- * @param sock The fd being modified
+ * @param fd The fd being modified
  *
  * @return 0 on success, < 0 otherwise
  */
-int fd_blocking(int sock) {
+int tils_fd_blocking(int fd) {
     int res;
-    if ((res = fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) & 
+    if ((res = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) &
                     ~O_NONBLOCK)) < 0) {
         fprintf(stderr, ERROR "Unable set status to blocking (%s)\n",
                 strerror(errno));
@@ -99,13 +99,13 @@ int fd_blocking(int sock) {
 }
 
 /**
- * @brief Get file size for input fd 
+ * @brief Get file size for input fd
  *
  * @param fd The file descriptor being examined
  *
  * @return size on success, < 0 on failure
  */
-int fd_size(int fd) {
+int tils_fd_size(int fd) {
     struct stat st;
     int res;
     if ((res = fstat(fd, &st)) < 0) {

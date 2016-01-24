@@ -43,7 +43,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <tils/socket_util.h>
+#include <tils/io_util.h>
 #include <tils/serve.h>
 #include <tils/worker_thread.h>
 
@@ -186,9 +186,9 @@ void *handle_connections(void *_self) {
             /* Keep alive can fail.
              * TODO if the error hints at a larger problem, do something here.
              */
-            socket_keepalive(client_fd);
+            tils_socket_keepalive(client_fd);
 
-            if (UNLIKELY(fd_nonblocking(client_fd) < 0)) {
+            if (UNLIKELY(tils_fd_nonblocking(client_fd) < 0)) {
                 /* If non blocking fails, every call to `accept' will take too
                  * long. This connection is then no longer viable. */
                 close(client_fd);

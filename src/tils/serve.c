@@ -37,7 +37,7 @@
 
 #include <tils/serve.h>
 #include <tils/routes.h>
-#include <tils/socket_util.h>
+#include <tils/io_util.h>
 
 #include "serve_private.h"
 
@@ -219,7 +219,7 @@ void tils_serve_resource(tils_conn_t *conn, tils_http_request_t http_request, ch
     /* Find if we are allowed to serve this resource */
     if (tils_route_lookup(resource, &remap_resource) == 0 &&
             (file_fd = open(remap_resource, O_RDONLY)) >= 0) {
-        if ((size = fd_size(file_fd)) < 0)
+        if ((size = tils_fd_size(file_fd)) < 0)
             return;
 
         fprintf(stdout, ANSI_BLUE "%s <- " ANSI_GREEN ANSI_BOLD "200 "

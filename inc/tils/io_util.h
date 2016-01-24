@@ -16,14 +16,14 @@
  */
 
 /**
- * @file inc/socket_util.h
+ * @file inc/io_util.h
  *
- * @brief Abstract more common socket manipulation here
+ * @brief Abstract more common IO handler manipulation here
  *
  * @author Lars Wander (lars.wander@gmail.com)
  */
 
-int socket_keepalive(int sock);
-int fd_nonblocking(int sock);
-int fd_blocking(int sock);
-int fd_size(int fd);
+int tils_socket_keepalive(int sock);
+int tils_fd_nonblocking(int fd);
+int tils_fd_blocking(int fd);
+int tils_fd_size(int fd);

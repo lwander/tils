@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 
 #include <lib/util.h>
-#include <tils/socket_util.h>
+#include <tils/io_util.h>
 
 /**
  * @brief Increase open file descriptors to max
@@ -86,13 +86,13 @@ int init_server(int port) {
         goto fail;
     }
 
-    if (socket_keepalive(server_fd) < 0) {
+    if (tils_socket_keepalive(server_fd) < 0) {
         goto fail;
     }
 
     /* At first block, because we don't need to spin waiting for connections
      * if we know there are none */
-    if (fd_nonblocking(server_fd) < 0) {
+    if (tils_fd_nonblocking(server_fd) < 0) {
         goto fail;
     }
 

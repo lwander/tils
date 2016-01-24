@@ -6,16 +6,16 @@ SHAREDFLAGS=-pthread
 OBJ_DIR=obj
 SRC_DIR=src
 TEST_DIR=test
-SRC_SUB_DIRS=lib
+SRC_SUB_DIRS=lib tils
 ALL_DIRS=$(SRC_SUB_DIRS:%=$(OBJ_DIR)/%)
 
-EXECUTABLE=c-http
+EXECUTABLE=tils
 
 TEST_EXECUTABLE=test-c-http
 
 # Files needed only by c-http executable
-LCC_SRCS=main.c routes.c worker_thread.c socket_util.c serve.c conn.c \
-	tils.c lib/hashtable.c 
+LCC_SRCS=main.c tils/routes.c tils/worker_thread.c tils/io_util.c \
+	tils/serve.c tils/conn.c tils/tils.c lib/hashtable.c 
 
 # Files required by unit tests & c-http executable
 SHRD_SRCS=
