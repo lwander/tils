@@ -35,9 +35,8 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <util.h>
-
-#include <worker_thread.h>
+#include <lib/util.h>
+#include <tils/worker_thread.h>
 
 typedef enum {
     GET,

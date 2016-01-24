@@ -32,8 +32,8 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include <conn.h>
-#include <util.h>
+#include <lib/util.h>
+#include <tils/conn.h>
 
 /**
  * @brief Initialize a new connection.

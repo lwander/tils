@@ -43,9 +43,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <socket_util.h>
-#include <serve.h>
-#include <worker_thread.h>
+#include <tils/socket_util.h>
+#include <tils/serve.h>
+#include <tils/worker_thread.h>
 
 #include "worker_thread_private.h"
 

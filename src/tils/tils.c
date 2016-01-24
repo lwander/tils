@@ -41,8 +41,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <util.h>
-#include <socket_util.h>
+#include <lib/util.h>
+#include <tils/socket_util.h>
 
 /**
  * @brief Increase open file descriptors to max

@@ -26,7 +26,7 @@
 #ifndef _WORKER_THREAD_H_
 #define _WORKER_THREAD_H_
 
-#include <conn.h>
+#include <tils/conn.h>
 #include <pthread.h>
 
 #define THREAD_COUNT (2)

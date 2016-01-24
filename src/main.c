@@ -28,10 +28,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <routes.h>
-#include <util.h>
-#include <worker_thread.h>
-#include <tils.h>
+#include <lib/util.h>
+#include <tils/routes.h>
+#include <tils/worker_thread.h>
+#include <tils/tils.h>
 
 
 int main(int argc, char *argv[]) {

@@ -31,8 +31,8 @@
 #include <string.h>
 
 #include <lib/hashtable.h>
-#include <err.h>
-#include <util.h>
+#include <lib/err.h>
+#include <lib/util.h>
 
 #include "hashtable_private.h"
 

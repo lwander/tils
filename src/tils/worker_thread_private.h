@@ -30,7 +30,7 @@
 
 #include <pthread.h>
 
-#include <util.h>
+#include <lib/util.h>
 
 #define LOG_FREQ (200000)
 

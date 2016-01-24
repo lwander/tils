@@ -23,7 +23,6 @@
  * @author Lars Wander (lars.wander@gmail.com)
  */
 
-#include <socket_util.h>
 
 #include <stdio.h>
 #include <ctype.h>
@@ -38,7 +37,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <util.h>
+#include <lib/util.h>
+#include <tils/socket_util.h>
 
 /**
  * @brief set keepalive state for input socket
