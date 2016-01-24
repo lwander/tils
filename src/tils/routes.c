@@ -33,7 +33,7 @@ static htable_t *_routes = NULL;
 /**
  * @brief Setup routing table 
  */
-int init_routes() {
+int tils_routes_init() {
     _routes = htable_new();
     if (_routes == NULL) {
         return -1;
@@ -45,20 +45,20 @@ int init_routes() {
 /**
  * @brief Add a route entry. Whenever source is encountered, dest is served 
  */
-int add_route(char *source, char *dest) {
+int tils_route_add(char *source, char *dest) {
     return htable_insert(_routes, source, (void *)dest);    
 }
 
 /**
  * @brief Lookup a route entry.
  */
-int lookup_route(char *source, char **dest) {
+int tils_route_lookup(char *source, char **dest) {
     return htable_lookup(_routes, source, (void **)dest);
 }
 
 /**
  * @brief free all route resources
  */
-void cleanup_routes() {
+void tils_routes_cleanup() {
     htable_free(_routes, NULL);
 }

@@ -217,7 +217,7 @@ void serve_resource(tils_conn_t *conn, http_request_t http_request, char *resour
     int size;
 
     /* Find if we are allowed to serve this resource */
-    if (lookup_route(resource, &remap_resource) == 0 &&
+    if (tils_route_lookup(resource, &remap_resource) == 0 &&
             (file_fd = open(remap_resource, O_RDONLY)) >= 0) {
         if ((size = fd_size(file_fd)) < 0)
             return;

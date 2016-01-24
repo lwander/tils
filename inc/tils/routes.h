@@ -26,9 +26,9 @@
 #ifndef _ROUTES_H_
 #define _ROUTES_H_
 
-int init_routes();
-void cleanup_routes();
-int add_route(char *source, char *dest);
-int lookup_route(char *source, char **dest);
+int tils_routes_init();
+void tils_routes_cleanup();
+int tils_route_add(char *source, char *dest);
+int tils_route_lookup(char *source, char **dest);
 
 #endif /* _ROUTES_H_ */

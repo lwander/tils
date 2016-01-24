@@ -50,11 +50,11 @@ int main(int argc, char *argv[]) {
     }
 
     fprintf(stdout, "Building routes...\n");
-    if (init_routes() < 0 || 
-           add_route("/", "html/index.html") < 0 ||
-           add_route("/apple-touch-icon.png", "html/apple-touch-icon.png") < 0 ||
-           add_route("/favicon.png", "html/favicon.png") < 0 ||
-           add_route("/common.css", "html/common.css") < 0) {
+    if (tils_routes_init() < 0 || 
+           tils_route_add("/", "html/index.html") < 0 ||
+           tils_route_add("/apple-touch-icon.png", "html/apple-touch-icon.png") < 0 ||
+           tils_route_add("/favicon.png", "html/favicon.png") < 0 ||
+           tils_route_add("/common.css", "html/common.css") < 0) {
         fprintf(stdout, "failed.\n");
         res = -1;
         goto cleanup_routes;
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
     close(server_fd);
 
 cleanup_routes:
-    cleanup_routes();
+    tils_routes_cleanup();
 
     fprintf(stdout, "Goodbye\n");
     return res;
