@@ -59,8 +59,8 @@ typedef struct {
 
     /* Readable ID */
     int id;
-} wt_t;
+} tils_wt_t;
 
-void start_thread_pool(int server_fd);
+void tils_start_thread_pool(int server_fd);
 
 #endif /* _WORKER_THREAD_H_ */

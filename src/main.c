@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
     }
 
     fprintf(stdout, "Starting working threads...\n");
-    start_thread_pool(server_fd);
+    tils_start_thread_pool(server_fd);
 
     close(server_fd);
 
