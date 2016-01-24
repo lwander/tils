@@ -62,7 +62,7 @@ void accept_request(tils_conn_t *conn) {
     int request_len = 0;
     int index = 0;
     int word_len = 0;
-    http_request_t http_request;
+    tils_http_request_t http_request;
 
     /* First grab the full HTTP request */
     request_len = recv(conn->client_fd, request, REQUEST_BUF_SIZE, 0);
@@ -76,7 +76,7 @@ void accept_request(tils_conn_t *conn) {
     /* TODO More robust parsing of requests */
     index = next_word(request, request_len, 0);
     word_len = read_word(request, REQUEST_BUF_SIZE, word, WORD_BUF_SIZE, index);
-    http_request = request_type(word, word_len);
+    http_request = tils_request_type(word, word_len);
 
     index = next_word(request, request_len, index + word_len);
     word_len = read_word(request, REQUEST_BUF_SIZE, resource, WORD_BUF_SIZE,
@@ -84,7 +84,7 @@ void accept_request(tils_conn_t *conn) {
 
     fprintf(stdout, ANSI_BLUE "%s -> " ANSI_RESET ANSI_BOLD "%s " ANSI_RESET
             "%s\n", conn->addr_buf, word, resource);
-    serve_resource(conn, http_request, resource);
+    tils_serve_resource(conn, http_request, resource);
     return;
 }
 

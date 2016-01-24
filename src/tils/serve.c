@@ -90,7 +90,7 @@ int next_word(char *buf, int buf_len, int index) {
  *
  * @return The request type.
  */
-http_request_t request_type(char *request, int request_len) {
+tils_http_request_t tils_request_type(char *request, int request_len) {
     if (strncmp("GET", request, request_len) == 0)
         return GET;
     else if (strncmp("POST", request, request_len) == 0)
@@ -118,7 +118,7 @@ http_request_t request_type(char *request, int request_len) {
  * @param msg The message with format specifiers to be sent.
  * @param ... variable args being formated into msg.
  */
-void send_to_client(int client_fd, char *msg, ...) {
+void _tils_serve_to_client(int client_fd, char *msg, ...) {
     va_list ap;
     char buf[REQUEST_BUF_SIZE + 1];
 
@@ -137,7 +137,7 @@ void send_to_client(int client_fd, char *msg, ...) {
  *
  * @return The content filetype - TEXT if unsure
  */
-char *get_content_type(char *filename, int filename_len) {
+char *_tils_get_content_type(char *filename, int filename_len) {
     int p_ind = filename_len - 1;
     while (p_ind > 0 && filename[p_ind] != '.')
         p_ind--;
@@ -160,10 +160,10 @@ char *get_content_type(char *filename, int filename_len) {
  *
  * @param client_fd The client being communicated with
  */
-void serve_unimplemented(tils_conn_t *conn) {
+void _tils_serve_unimplemented(tils_conn_t *conn) {
     fprintf(stdout, ANSI_BLUE "%s <- " ANSI_YELLOW ANSI_BOLD "501\n" ANSI_RESET,
             conn->addr_buf);
-    send_to_client(conn->client_fd, (char *)msg_unimplemented);
+    _tils_serve_to_client(conn->client_fd, (char *)msg_unimplemented);
 }
 
 /**
@@ -171,14 +171,14 @@ void serve_unimplemented(tils_conn_t *conn) {
  *
  * @param client_fd The client being communicated with
  */
-void serve_not_found(tils_conn_t *conn) {
+void _tils_serve_not_found(tils_conn_t *conn) {
     fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RED ANSI_BOLD "404\n" ANSI_RESET,
             conn->addr_buf);
-    send_to_client(conn->client_fd, (char *)msg_not_found);
+    _tils_serve_to_client(conn->client_fd, (char *)msg_not_found);
 }
 
-void serve_file(tils_conn_t *conn, int file_fd, char *content_type, int size) {
-    send_to_client(conn->client_fd, (char *)header_file, content_type, size);
+void _tils_serve_file(tils_conn_t *conn, int file_fd, char *content_type, int size) {
+    _tils_serve_to_client(conn->client_fd, (char *)header_file, content_type, size);
 
     char buf[REQUEST_BUF_SIZE];
     int res = 0;
@@ -206,9 +206,9 @@ void serve_file(tils_conn_t *conn, int file_fd, char *content_type, int size) {
     fprintf(stdout, "\n");
 }
 
-void serve_resource(tils_conn_t *conn, http_request_t http_request, char *resource) {
+void tils_serve_resource(tils_conn_t *conn, tils_http_request_t http_request, char *resource) {
     if (http_request != GET) {
-        serve_unimplemented(conn);
+        _tils_serve_unimplemented(conn);
         return;
     }
 
@@ -225,12 +225,12 @@ void serve_resource(tils_conn_t *conn, http_request_t http_request, char *resour
         fprintf(stdout, ANSI_BLUE "%s <- " ANSI_GREEN ANSI_BOLD "200 "
                 ANSI_RESET "%s\n", conn->addr_buf, remap_resource);
 
-        char *content_type = get_content_type(remap_resource, 
+        char *content_type = _tils_get_content_type(remap_resource, 
                 strlen(remap_resource));
 
-        serve_file(conn, file_fd, content_type, size);
+        _tils_serve_file(conn, file_fd, content_type, size);
         close(file_fd);
     } else {
-        serve_not_found(conn);
+        _tils_serve_not_found(conn);
     }
 }
