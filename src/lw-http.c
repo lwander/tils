@@ -37,11 +37,34 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
 #include <util.h>
 #include <socket_util.h>
+
+/**
+ * @brief Increase open file descriptors to max
+ *
+ * @return Number of possible open file descriptors, -1 on error.
+ */
+rlim_t set_open_fd_limit() {
+    struct rlimit r;
+
+    if (getrlimit(RLIMIT_NOFILE, &r) < 0)
+        fprintf(stderr, ERROR "Unable to get file descriptor limit. (%s)\n", 
+                strerror(errno));
+
+    if (r.rlim_cur < r.rlim_max)
+        r.rlim_cur = r.rlim_max;
+
+    if (setrlimit(RLIMIT_NOFILE, &r) < 0)
+        fprintf(stderr, ERROR "Unable to set file descriptor limit. (%s)\n", 
+                strerror(errno));
+
+    return r.rlim_cur;
+}
 
 /**
  * @brief Bind server to HTTP TCP socket.
