@@ -48,6 +48,7 @@
 #include <tils/serve.h>
 #include <tils/accept.h>
 #include <tils/worker_thread.h>
+#include <tils/tils.h>
 
 #include "worker_thread_private.h"
 
@@ -206,6 +207,7 @@ void *_tils_handle_connections(void *_self) {
  */
 void tils_start_thread_pool(int server_fd) {
     int pipefd[2];
+    int conns_per_thread = get_open_fd_limit() / THREAD_COUNT;
 
     for (int i = 0; i < THREAD_COUNT; i++) {
         if (pipe(pipefd) < 0) {
@@ -227,7 +229,7 @@ void tils_start_thread_pool(int server_fd) {
         else 
             _worker_threads[i].server_fd = -1;
 
-        tils_conn_buf_init(&_worker_threads[i].conns);
+        tils_conn_buf_init(&_worker_threads[i].conns, conns_per_thread);
         _worker_threads[i].size = 0;
 
         /* THREAD_COUNT - 1 is the calling thread. */

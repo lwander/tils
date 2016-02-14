@@ -44,6 +44,8 @@
 #include <lib/util.h>
 #include <tils/io_util.h>
 
+static int _fd_limit;
+
 /**
  * @brief Increase open file descriptors to max
  *
@@ -66,6 +68,13 @@ rlim_t set_open_fd_limit() {
     return r.rlim_cur;
 }
 
+int get_open_fd_limit() {
+    if (_fd_limit == 0) {
+        _fd_limit = set_open_fd_limit();
+    }
+    return _fd_limit;
+}
+
 /**
  * @brief Bind server to HTTP TCP socket.
  *
@@ -74,6 +83,7 @@ rlim_t set_open_fd_limit() {
 int init_server(int port) {
     struct sockaddr_in ip4server;
     int server_fd = 0;
+    _fd_limit = 0;
 
     ip4server.sin_family = AF_INET; /* Address family internet */
     ip4server.sin_port = htons(port); /* Bind to given port */

@@ -141,6 +141,9 @@ tils_http_request_t *tils_parse_request(char *request, int request_len) {
             index);
 
     result->request_type = request_type;
-    strncpy(result->resource, resource, WORD_BUF_SIZE);
+    result->resource = malloc(word_len + 1);
+    strncpy(result->resource, resource, word_len);
+    result->resource[word_len] = '\0';
+
     return result;
 }

@@ -30,10 +30,8 @@
 
 #define TTL (60)
 
-#define CONNS_PER_THREAD (2)
-
-#define TILS_CONN_BUF_ELEM_AT(i) ((i) % CONNS_PER_THREAD)
-#define TILS_CONN_BUF_ELEM_NEXT(c) (TILS_CONN_BUF_ELEM_AT((c) + 1))
+#define TILS_CONN_BUF_ELEM_AT(i, s) ((i) % (s))
+#define TILS_CONN_BUF_ELEM_NEXT(c, s) (TILS_CONN_BUF_ELEM_AT((c) + 1, (s)))
 
 typedef enum tils_conn_state_e {
     /* Connection is totally closed, no dangling resources */
@@ -76,7 +74,10 @@ typedef struct tils_conn {
  */
 typedef struct tils_conn_buf {
     /* All connections in buffer */
-    tils_conn_t conns[CONNS_PER_THREAD];
+    tils_conn_t *conns;
+
+    /* Max number of connections */
+    int conn_cnt;
 
     /* Index of first connection held. */
     int start;
@@ -92,7 +93,7 @@ void tils_conn_revitalize(tils_conn_t *conn);
 int tils_conn_check_alive(tils_conn_t *conn);
 tils_conn_state tils_conn_close(tils_conn_t *conn);
 
-void tils_conn_buf_init(tils_conn_buf_t **conn_buf);
+void tils_conn_buf_init(tils_conn_buf_t **conn_buf, int conns);
 tils_conn_t *tils_conn_buf_push(tils_conn_buf_t *conn_buf, int client_fd, char *addr_buf);
 tils_conn_state tils_conn_buf_pop(tils_conn_buf_t *conn_buf);
 void tils_conn_buf_at(tils_conn_buf_t *conn_buf, int i, tils_conn_t **conn);

@@ -19,5 +19,6 @@
 #define _LW_HTTP_H_
 
 int init_server(int port);
+int get_open_fd_limit();
 
 #endif /* _LW_HTTP_H_ */
