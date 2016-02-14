@@ -2,7 +2,8 @@
  *  This file is part of c-http.
  *
  *  c-http is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by *  the Free Software Foundation, either version 3 of the License, or
+ *  it under the terms of the GNU General Public License as published by 
+ *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
  *  c-http is distributed in the hope that it will be useful,
@@ -45,48 +46,12 @@
 
 #include <tils/io_util.h>
 #include <tils/serve.h>
+#include <tils/accept.h>
 #include <tils/worker_thread.h>
 
 #include "worker_thread_private.h"
 
 static tils_wt_t _worker_threads[THREAD_COUNT];
-
-/**
- * @brief Process the type of HTTP request, and respond accordingly.
- * * @param conn Connection being communicated with
- */
-void _tils_accept_request(tils_conn_t *conn) {
-    char request[REQUEST_BUF_SIZE];
-    char word[WORD_BUF_SIZE];
-    char resource[WORD_BUF_SIZE];
-    int request_len = 0;
-    int index = 0;
-    int word_len = 0;
-    tils_http_request_t http_request;
-
-    /* First grab the full HTTP request */
-    request_len = recv(conn->client_fd, request, REQUEST_BUF_SIZE, 0);
-
-    if (request_len <= 0)
-        return;
-
-    tils_conn_revitalize(conn);
-
-    /* Start parsing it word by word */
-    /* TODO More robust parsing of requests */
-    index = next_word(request, request_len, 0);
-    word_len = read_word(request, REQUEST_BUF_SIZE, word, WORD_BUF_SIZE, index);
-    http_request = tils_request_type(word, word_len);
-
-    index = next_word(request, request_len, index + word_len);
-    word_len = read_word(request, REQUEST_BUF_SIZE, resource, WORD_BUF_SIZE,
-            index);
-
-    fprintf(stdout, ANSI_BLUE "%s -> " ANSI_RESET ANSI_BOLD "%s " ANSI_RESET
-            "%s\n", conn->addr_buf, word, resource);
-    tils_serve_resource(conn, http_request, resource);
-    return;
-}
 
 /**
  * @brief Wait to be connected to a client, then handle the client's request,
@@ -104,6 +69,7 @@ void *_tils_handle_connections(void *_self) {
 
     char addr_buf[INET_ADDRSTRLEN];
     tils_conn_t *conn = NULL;
+    tils_http_request_t *request = NULL;
     tils_conn_buf_t *conn_buf = self->conns;
 
     fd_set read_fs;
@@ -194,7 +160,11 @@ void *_tils_handle_connections(void *_self) {
                 close(client_fd);
             } else {
                 conn = tils_conn_buf_push(conn_buf, client_fd, addr_buf);
-                _tils_accept_request(conn);
+                request = tils_accept_request(conn);
+                if (request) {
+                    tils_conn_revitalize(conn);
+                    tils_serve_resource(conn, request);
+                }
                 fprintf(stdout, ANSI_BOLD ANSI_GREEN  "-->  " ANSI_BLUE "%s\n"
                         ANSI_RESET, addr_buf);
             }
@@ -217,7 +187,11 @@ void *_tils_handle_connections(void *_self) {
             if (conn == NULL || !FD_ISSET(conn->client_fd, &read_fs))
                 continue;
 
-            _tils_accept_request(conn);
+            request = tils_accept_request(conn);
+            if (request) {
+                tils_conn_revitalize(conn);
+                tils_serve_resource(conn, request);
+            }
         }
     }
 

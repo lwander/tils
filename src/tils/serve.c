@@ -36,80 +36,11 @@
 #include <fcntl.h>
 
 #include <tils/serve.h>
+#include <tils/request.h>
 #include <tils/routes.h>
 #include <tils/io_util.h>
 
 #include "serve_private.h"
-
-/**
- * @brief Read a whitespace delinated word out of ibuf and into obuf.
- *
- * @param ibuf The input buffer being read from.
- * @param ibuf_len The input buffer length.
- * @param obuf The output buffer being read from.
- * @param obuf_len The output buffer length.
- * @param word_start The start of the word being read.
- *
- * @return The length of the word that was read.
- */
-int read_word(char *ibuf, int ibuf_len, char *obuf, int obuf_len,
-        int word_start) {
-    int len = 0;
-    int i = word_start;
-    while (i < ibuf_len && len < obuf_len - 1 && !isspace((int)ibuf[i])) {
-        obuf[len] = ibuf[i];
-        i++;
-        len++;
-    }
-
-    obuf[len] = '\0';
-    return len;
-}
-
-/**
- * @brief Finds the next non-whitespace character starting at index.
- *
- * @param buf The buffer being searched.
- * @param buf_len The length of the buffer being searched.
- * @param index The index the search starts from.
- *
- * @return The index of the first non-whitespace charcter after index.
- */
-int next_word(char *buf, int buf_len, int index) {
-    while (index < buf_len && isspace((int)buf[index]))
-        index++;
-    return index;
-}
-
-/**
- * @brief Get the request type from an HTTP header.
- *
- * @param request The HTTP request in string form.
- * @param request_len The size of the request (cannot be greater than the size
- *                    of the buffer).
- *
- * @return The request type.
- */
-tils_http_request_t tils_request_type(char *request, int request_len) {
-    if (strncmp("GET", request, request_len) == 0)
-        return GET;
-    else if (strncmp("POST", request, request_len) == 0)
-        return POST;
-    else if (strncmp("PUT", request, request_len) == 0)
-        return PUT;
-    else if (strncmp("HEAD", request, request_len) == 0)
-        return HEAD;
-    else if (strncmp("OPTIONS", request, request_len) == 0)
-        return OPTIONS;
-    else if (strncmp("DELETE", request, request_len) == 0)
-        return DELETE;
-    else if (strncmp("TRACE", request, request_len) == 0)
-        return TRACE;
-    else if (strncmp("CONNECT", request, request_len) == 0)
-        return CONNECT;
-    else
-        return UNKNOWN;
-}
 
 /**
  * @brief Send data & vaargs to client
@@ -177,8 +108,10 @@ void _tils_serve_not_found(tils_conn_t *conn) {
     _tils_serve_to_client(conn->client_fd, (char *)msg_not_found);
 }
 
-void _tils_serve_file(tils_conn_t *conn, int file_fd, char *content_type, int size) {
-    _tils_serve_to_client(conn->client_fd, (char *)header_file, content_type, size);
+void _tils_serve_file(tils_conn_t *conn, int file_fd, char *content_type, 
+        int size) {
+    _tils_serve_to_client(conn->client_fd, (char *)header_file, content_type, 
+            size);
 
     char buf[REQUEST_BUF_SIZE];
     int res = 0;
@@ -206,8 +139,17 @@ void _tils_serve_file(tils_conn_t *conn, int file_fd, char *content_type, int si
     fprintf(stdout, "\n");
 }
 
-void tils_serve_resource(tils_conn_t *conn, tils_http_request_t http_request, char *resource) {
-    if (http_request != GET) {
+/**
+ * @brief Serve a resource to the input connection based on the request.
+ *
+ * @param conn The connection being served the resource.
+ * @param http_request The request specifying the resource.
+ */
+void tils_serve_resource(tils_conn_t *conn, tils_http_request_t *http_request) {
+    tils_http_request_e request_type = http_request->request_type;
+    char *resource = http_request->resource;
+
+    if (request_type != TILS_GET) {
         _tils_serve_unimplemented(conn);
         return;
     }

@@ -16,33 +16,36 @@
  */
 
 /**
- * @file inc/serve.c
+ * @file inc/request.c
  *
- * @brief Serving tools implementation
+ * @brief Request handling implementation
  *
  * @author Lars Wander
  */
 
-#ifndef _SERVE_H_
-#define _SERVE_H_
+#ifndef _REQUEST_H_
+#define _REQUEST_H_
 
-#define SERVER_STRING "Server: lwander-c-http/0.0.1\r\n"
+#include <tils/conn.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
+typedef enum {
+    TILS_GET,
+    TILS_POST,
+    TILS_PUT,
+    TILS_HEAD,
+    TILS_OPTIONS,
+    TILS_DELETE,
+    TILS_TRACE,
+    TILS_CONNECT,
+    TILS_UNKNOWN
+} tils_http_request_e;
 
-#include <lib/util.h>
-#include <tils/request.h>
+typedef struct {
+    tils_http_request_e request_type;
+    char *resource;
+} tils_http_request_t;
 
-#define HTML "text/html; charset=utf8"
-#define CSS "text/css"
-#define JS "application/javascript"
-#define TEXT "text"
+tils_http_request_t *tils_parse_request(char *request, int request_len);
+void tils_free_request(tils_http_request_t *request);
 
-void tils_serve_resource(tils_conn_t *conn, tils_http_request_t *http_request);
-
-#endif /* _SERVE_H_ */
+#endif /* _REQUEST_H_ */

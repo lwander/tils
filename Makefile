@@ -14,8 +14,9 @@ EXECUTABLE=tils
 TEST_EXECUTABLE=test-tils
 
 # Files needed only by c-http executable
-LCC_SRCS=main.c tils/routes.c tils/worker_thread.c tils/io_util.c \
-	tils/serve.c tils/conn.c tils/tils.c lib/hashtable.c 
+TILS_SRCS=main.c tils/routes.c tils/worker_thread.c tils/io_util.c \
+    tils/accept.c tils/request.c tils/serve.c tils/conn.c \
+	tils/tils.c lib/hashtable.c 
 
 # Files required by unit tests & c-http executable
 SHRD_SRCS=
@@ -25,7 +26,7 @@ TEST_SRCS=
 
 SHRD_OBJS=$(SHRD_SRCS:%.c=$(OBJ_DIR)/%.o)
 
-LCC_OBJS=$(LCC_SRCS:%.c=$(OBJ_DIR)/%.o)
+TILS_OBJS=$(TILS_SRCS:%.c=$(OBJ_DIR)/%.o)
 
 TEST_OBJS=$(TEST_SRCS:%.c=$(OBJ_DIR)/%.o)
 
@@ -38,7 +39,7 @@ test: dirs $(TEST_EXECUTABLE)
 $(TEST_EXECUTABLE): $(SHRD_OBJS) $(TEST_OBJS)
 	$(CXX) $^ -o $(TEST_EXECUTABLE) $(SHAREDFLAGS)
 
-$(EXECUTABLE): $(SHRD_OBJS) $(LCC_OBJS)
+$(EXECUTABLE): $(SHRD_OBJS) $(TILS_OBJS)
 	$(CXX) $^ -o $(EXECUTABLE) $(SHAREDFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
