@@ -11,7 +11,7 @@ ALL_DIRS=$(SRC_SUB_DIRS:%=$(OBJ_DIR)/%)
 
 EXECUTABLE=tils
 
-TEST_EXECUTABLE=test-c-http
+TEST_EXECUTABLE=test-tils
 
 # Files needed only by c-http executable
 LCC_SRCS=main.c tils/routes.c tils/worker_thread.c tils/io_util.c \
