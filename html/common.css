@@ -38,15 +38,16 @@ h2 {
     font-size 1em;
     font-weight: 400;
     text-align: center;
+    padding-bottom: 3cm;
 }
 
 .container p {
     font-size: 16px;
-    padding-top: 2em;
+    padding-top: 1em;
 }
 
 .container div.article {
-    padding-top: 3cm;
+    padding-bottom: 1cm;
 }
 
 .container div.date {
@@ -63,4 +64,5 @@ h2 {
 .container div.article-head {
     clear: both;
     font-size: 16px;
+    padding-bottom: 1em;
 }
