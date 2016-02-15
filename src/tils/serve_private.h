@@ -29,9 +29,9 @@
 const char* msg_unimplemented = "HTTP/1.1 501 Method Not Implemented\r\n"
 SERVER_STRING
 "Content-Type: text\r\n"
-"Content-Length: 8\r\n"
+"Content-Length: 18\r\n"
 "\r\n"
-"Whoops\r\n";
+"Not implemented.\r\n";
 
 const char *msg_not_found = "HTTP/1.1 404 Not Found\r\n"
 SERVER_STRING
@@ -44,6 +44,7 @@ const char *header_file = "HTTP/1.1 200 OK\r\n"
 SERVER_STRING
 "Content-Type: %s\r\n"
 "Content-Length: %d\r\n"
+"Connection: keep-alive\r\n"
 "\r\n";
 
 #endif /* _SERVE_PRIVATE_H_ */

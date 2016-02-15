@@ -78,19 +78,21 @@ void *_tils_handle_connections(void *_self) {
 
     int i = 0;
     while (1) {
-        struct timeval timeout = { .tv_sec = 5, .tv_usec = 0 };
         i++;
+        struct timeval timeout = { .tv_sec = 5, .tv_usec = 0 };
         FD_ZERO(&read_fs);
 
         /* Are we the leader? */
         if (self->server_fd >= 0) {
+            /* If so, listen on the incomming connection port */
             FD_SET(self->server_fd, &read_fs);
             nfds = self->server_fd;
-        }
-
-        FD_SET(self->read_fd, &read_fs);
-        if (self->read_fd > nfds)
+        } else {
+            /* This may be risky */
+            FD_SET(self->read_fd, &read_fs);
+        //    if (self->read_fd > nfds)
             nfds = self->read_fd;
+        }
 
         /* Do cleanup, and simultaneously record connections in our fd_set. */
         for (int i = 0; i < tils_conn_buf_size(conn_buf); i++) {
@@ -102,8 +104,6 @@ void *_tils_handle_connections(void *_self) {
             tils_conn_check_alive(conn);
 
             if (conn->state == CONN_DEAD) {
-                fprintf(stdout, ANSI_BOLD ANSI_YELLOW "-/-> " ANSI_BLUE "%s\n"
-                        ANSI_RESET, conn->addr_buf);
                 tils_conn_close(conn);
                 continue;
             }
@@ -120,13 +120,11 @@ void *_tils_handle_connections(void *_self) {
             exit(-1);
         }
         
-        if (i % LOG_FREQ == 0)
-            fprintf(stdout, INFO "[%d] on %d\n", self->id, res);
         /* 0 means no file descriptors are active and the timeout woke us up. */
         if (res == 0)
             continue;
 
-        /* If our server_fd (leader token)  is positive, 
+        /* If our server_fd (leader token) is positive, 
          * we can accept connections */
         if (self->server_fd >= 0 && FD_ISSET(self->server_fd, &read_fs) &&
                 (client_fd = accept(self->server_fd, 
@@ -166,8 +164,6 @@ void *_tils_handle_connections(void *_self) {
                     tils_conn_revitalize(conn);
                     tils_serve_resource(conn, request);
                 }
-                fprintf(stdout, ANSI_BOLD ANSI_GREEN  "-->  " ANSI_BLUE "%s\n"
-                        ANSI_RESET, addr_buf);
             }
         }
 
@@ -179,7 +175,6 @@ void *_tils_handle_connections(void *_self) {
                 exit(-1);
             }
             assert(self->server_fd >= 0);
-            fprintf(stdout, INFO "NEW LEADER");
         }
 
         /* Respond to sockets that are ready to be read from. */

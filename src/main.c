@@ -54,7 +54,8 @@ int main(int argc, char *argv[]) {
            tils_route_add("/", "html/index.html") < 0 ||
            tils_route_add("/apple-touch-icon.png", "html/apple-touch-icon.png") < 0 ||
            tils_route_add("/favicon.png", "html/favicon.png") < 0 ||
-           tils_route_add("/common.css", "html/common.css") < 0) {
+           tils_route_add("/common.css", "html/common.css") < 0 ||
+           tils_route_add("/test/test.html", "html/test/test.html") < 0) {
         fprintf(stdout, "failed.\n");
         res = -1;
         goto cleanup_routes;

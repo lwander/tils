@@ -44,8 +44,5 @@ tils_http_request_t *tils_accept_request(tils_conn_t *conn) {
 
     http_request = tils_parse_request(request, request_len);
 
-    if (http_request != NULL)
-        fprintf(stdout, ANSI_BLUE "%s -> " ANSI_RESET "%s\n", 
-                conn->addr_buf, http_request->resource);
     return http_request;
 }

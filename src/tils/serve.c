@@ -92,8 +92,6 @@ char *_tils_get_content_type(char *filename, int filename_len) {
  * @param client_fd The client being communicated with
  */
 void _tils_serve_unimplemented(tils_conn_t *conn) {
-    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_YELLOW ANSI_BOLD "501\n" ANSI_RESET,
-            conn->addr_buf);
     _tils_serve_to_client(conn->client_fd, (char *)msg_unimplemented);
 }
 
@@ -103,8 +101,6 @@ void _tils_serve_unimplemented(tils_conn_t *conn) {
  * @param client_fd The client being communicated with
  */
 void _tils_serve_not_found(tils_conn_t *conn) {
-    fprintf(stdout, ANSI_BLUE "%s <- " ANSI_RED ANSI_BOLD "404\n" ANSI_RESET,
-            conn->addr_buf);
     _tils_serve_to_client(conn->client_fd, (char *)msg_not_found);
 }
 
@@ -133,11 +129,8 @@ void _tils_serve_file(tils_conn_t *conn, int file_fd, char *content_type,
         }
 
         sum_total += total;
-        fprintf(stdout, ANSI_CLEAR INFO "[%d/%d bytes]", sum_total, size);
     }
-
-    fprintf(stdout, "\n");
-}
+} 
 
 /**
  * @brief Serve a resource to the input connection based on the request.
@@ -163,9 +156,6 @@ void tils_serve_resource(tils_conn_t *conn, tils_http_request_t *http_request) {
             (file_fd = open(remap_resource, O_RDONLY)) >= 0) {
         if ((size = tils_fd_size(file_fd)) < 0)
             return;
-
-        fprintf(stdout, ANSI_BLUE "%s <- " ANSI_GREEN ANSI_BOLD "200 "
-                ANSI_RESET "%s\n", conn->addr_buf, remap_resource);
 
         char *content_type = _tils_get_content_type(remap_resource, 
                 strlen(remap_resource));
