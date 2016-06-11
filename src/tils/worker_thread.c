@@ -55,6 +55,28 @@
 static tils_wt_t _worker_threads[THREAD_COUNT];
 
 /**
+ * @brief assign the current thread to a single core
+ */
+void _tils_sched_thread(tils_wt_t *self) {
+    int core_cnt = sysconf(_SC_NPROCESSORS_ONLN);
+    int assigned_core = self->id % core_cnt;
+
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(assigned_core, &cpuset);
+
+    pthread_t thread = pthread_self();
+    if (pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset) != 0) {
+        fprintf(stderr, WARN "Couldn't bind thread (%s).\n", 
+                strerror(errno));
+    } else {
+        fprintf(stdout, INFO "Bound thread %d to core %d.\n", self->id,
+                assigned_core);
+    }
+}
+
+
+/**
  * @brief Wait to be connected to a client, then handle the client's request,
  *        and repeat.
  *
@@ -62,6 +84,7 @@ static tils_wt_t _worker_threads[THREAD_COUNT];
  */
 void *_tils_handle_connections(void *_self) {
     tils_wt_t *self = (tils_wt_t *)_self;
+    _tils_sched_thread(self);
 
     struct sockaddr_in ip4client;
     unsigned int ip4client_len = sizeof(ip4client);

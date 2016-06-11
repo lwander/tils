@@ -42,6 +42,7 @@
 
 #define INFO   ANSI_BOLD "[INFO] " ANSI_RESET
 #define ERROR  ANSI_BOLD ANSI_RED "[ERROR] " ANSI_RESET
+#define WARN   ANSI_BOLD ANSI_YELLOW "[WARN] " ANSI_RESET
 
 #define MAX(res, a, b) \
    do { __typeof__ (a) _a = (a); \
