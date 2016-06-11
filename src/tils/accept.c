@@ -40,7 +40,6 @@ tils_http_request_t *tils_accept_request(tils_conn_t *conn) {
     request_len = recv(conn->client_fd, request, REQUEST_BUF_SIZE, 0);
 
     if (request_len <= 0) {
-        conn->state = CONN_DEAD;
         return NULL;
     }
 
