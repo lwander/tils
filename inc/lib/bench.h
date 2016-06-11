@@ -35,7 +35,7 @@
 #define INIT_BENCH struct timeval _b_start, _b_stop
 #define START_BENCH gettimeofday(&_b_start, NULL)
 #define STOP_BENCH gettimeofday(&_b_stop, NULL)
-#define LOG_BENCH(r) printf(",- %s : %lu us\n", (r), \
+#define LOG_BENCH(r) printf("ACTION %s : %lu us\n", (r), \
         _b_stop.tv_usec - _b_start.tv_usec) \
     
 #else

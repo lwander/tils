@@ -26,8 +26,6 @@
 #include <tils/accept.h>
 #include <tils/serve.h>
 
-#include <lib/bench.h>
-
 /**
  * @brief Process the HTTP request, and respond accordingly.
  * 
