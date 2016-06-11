@@ -28,6 +28,8 @@
 
 #include <time.h>
 
+#define USE_BENCH 
+
 #define ANSI_BOLD    "\x1b[1m"
 #define ANSI_RED     "\x1b[31m"
 #define ANSI_GREEN   "\x1b[32m"
@@ -54,7 +56,7 @@
 #define CACHE_LINE_SIZE (64)
 
 #define HTTP_PORT (80)
-#define REQUEST_BUF_SIZE (1 << 10)
+#define REQUEST_BUF_SIZE (1 << 12)
 #define WORD_BUF_SIZE (1 << 7)
 
 #define TIME_NOW (((double) (clock())) / CLOCKS_PER_SEC)

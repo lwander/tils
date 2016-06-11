@@ -29,7 +29,7 @@
 #include <tils/conn.h>
 #include <pthread.h>
 
-#define THREAD_COUNT (12)
+#define THREAD_COUNT (1)
 
 /**
  * @brief Worker thread struct implementation.

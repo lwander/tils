@@ -26,6 +26,8 @@
 #include <tils/accept.h>
 #include <tils/serve.h>
 
+#include <lib/bench.h>
+
 /**
  * @brief Process the HTTP request, and respond accordingly.
  * 
@@ -39,8 +41,10 @@ tils_http_request_t *tils_accept_request(tils_conn_t *conn) {
     /* First grab the full HTTP request */
     request_len = recv(conn->client_fd, request, REQUEST_BUF_SIZE, 0);
 
-    if (request_len <= 0)
+    if (request_len <= 0) {
+        conn->state = CONN_DEAD;
         return NULL;
+    }
 
     http_request = tils_parse_request(request, request_len);
 

@@ -40,6 +40,8 @@
 #include <tils/routes.h>
 #include <tils/io_util.h>
 
+#include <lib/bench.h>
+
 #include "serve_private.h"
 
 /**

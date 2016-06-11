@@ -50,6 +50,8 @@
 #include <tils/worker_thread.h>
 #include <tils/tils.h>
 
+#include <lib/bench.h>
+
 #include "worker_thread_private.h"
 
 static tils_wt_t _worker_threads[THREAD_COUNT];
@@ -61,6 +63,7 @@ static tils_wt_t _worker_threads[THREAD_COUNT];
  * @param server_fd The socket fd to accept connections on
  */
 void *_tils_handle_connections(void *_self) {
+    INIT_BENCH;
     tils_wt_t *self = (tils_wt_t *)_self;
 
     struct sockaddr_in ip4client;
@@ -112,14 +115,14 @@ void *_tils_handle_connections(void *_self) {
             if (conn->client_fd > nfds)
                 nfds = conn->client_fd;
         }
-
+        
         int res = 0;
         if (UNLIKELY((res = select(nfds + 1, &read_fs, 
                             NULL, NULL, &timeout)) < 0)) {
             fprintf(stderr, ERROR "Select failed (%s).\n", strerror(errno));
             exit(-1);
         }
-        
+
         /* 0 means no file descriptors are active and the timeout woke us up. */
         if (res == 0)
             continue;
@@ -142,6 +145,7 @@ void *_tils_handle_connections(void *_self) {
                         strerror(errno));
                 exit(-1);
             }
+            START_BENCH;
             self->server_fd = -1;
 
             /* Load the IP address for logging purposes. */
@@ -174,6 +178,8 @@ void *_tils_handle_connections(void *_self) {
                         strerror(errno));
                 exit(-1);
             }
+            STOP_BENCH;
+            LOG_BENCH("got token");
             assert(self->server_fd >= 0);
         }
 
