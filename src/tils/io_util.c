@@ -29,7 +29,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <errno.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -38,6 +37,7 @@
 #include <arpa/inet.h>
 
 #include <lib/util.h>
+#include <lib/logging.h>
 #include <tils/io_util.h>
 
 /**
@@ -52,8 +52,7 @@ int tils_socket_keepalive(int sock) {
     socklen_t optlen = sizeof(optval);
     /* Set keepalive status */
     if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen) < 0) {
-        fprintf(stderr, ERROR "Unable to set keepalive to %d (%s)\n",
-                optval, strerror(errno));
+        log_err("Unable to set keepalive to %d", optval);
         return -1;
     }
 
@@ -71,8 +70,7 @@ int tils_fd_nonblocking(int fd) {
     int res;
     if ((res = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) |
                     O_NONBLOCK)) < 0) {
-        fprintf(stderr, ERROR "Unable set status to non-blocking (%s)\n",
-                strerror(errno));
+        log_err("Unable set status to non-blocking");
         return res;
     }
 
@@ -90,8 +88,7 @@ int tils_fd_blocking(int fd) {
     int res;
     if ((res = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) &
                     ~O_NONBLOCK)) < 0) {
-        fprintf(stderr, ERROR "Unable set status to blocking (%s)\n",
-                strerror(errno));
+        log_err("Unable set status to blocking");
         return res;
     }
 
@@ -109,7 +106,7 @@ int tils_fd_size(int fd) {
     struct stat st;
     int res;
     if ((res = fstat(fd, &st)) < 0) {
-        fprintf(stderr, ERROR "Getting file info (%s)\n", strerror(errno));
+        log_err("Getting file info");
         return res;
     }
 

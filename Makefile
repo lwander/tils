@@ -1,6 +1,7 @@
 IDIR=inc
 CXX=gcc
-CXXFLAGS=-I$(IDIR)/ -c -Wall -Wpedantic -Werror -std=c11 -O3
+CXXFLAGS=-I$(IDIR)/ -c -Wall -Wpedantic -Werror -std=c11 -O3 \
+		 -D_XOPEN_SOURCE=700
 SHAREDFLAGS=-pthread
 
 OBJ_DIR=obj
@@ -16,7 +17,7 @@ TEST_EXECUTABLE=test-tils
 # Files needed only by c-http executable
 TILS_SRCS=main.c tils/routes.c tils/worker_thread.c tils/io_util.c \
     tils/accept.c tils/request.c tils/serve.c tils/conn.c \
-	tils/tils.c lib/hashtable.c 
+	tils/tils.c lib/hashtable.c lib/logging.c
 
 # Files required by unit tests & c-http executable
 SHRD_SRCS=

@@ -23,12 +23,13 @@
  * @author Lars Wander (lars.wander@gmail.com)
  */
 
-#include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include <lib/util.h>
+#include <lib/logging.h>
 #include <tils/routes.h>
 #include <tils/worker_thread.h>
 #include <tils/tils.h>
@@ -43,39 +44,38 @@ int main(int argc, char *argv[]) {
         char *end = NULL;
         long res = strtol(argv[1], &end, 10);
         if (*end != '\0' || res < 0 || res >= (1 << 16) - 1) {
-            fprintf(stderr, ERROR "Invalid port %s\n", argv[1]);
+            log_err("Invalid port: %s", argv[1]);
             exit(-1);
         }
+
         port = (int)res;
     }
 
-    fprintf(stdout, "Building routes...\n");
+    log_info("Building routes...");
     if (tils_routes_init() < 0 || 
            tils_route_add("/", "html/index.html") < 0 ||
            tils_route_add("/apple-touch-icon.png", "html/apple-touch-icon.png") < 0 ||
            tils_route_add("/favicon.png", "html/favicon.png") < 0 ||
            tils_route_add("/common.css", "html/common.css") < 0 ||
            tils_route_add("/test/test.html", "html/test/test.html") < 0) {
-        fprintf(stdout, "failed.\n");
+        log_err("Failed to build routes");
         res = -1;
         goto cleanup_routes;
     } 
 
-    fprintf(stdout, "Opening connection on port %d...\n", port);
+    log_info("Opening connection on port %d", port);
     if ((server_fd = init_server(port)) < 0) {
-        fprintf(stdout, "failed.\n");
+        log_err("Failed to open port");
         res = -1;
         goto cleanup_routes;
     }
 
-    fprintf(stdout, "Starting working threads...\n");
+    log_info("Starting thread pool...");
     tils_start_thread_pool(server_fd);
 
     close(server_fd);
 
 cleanup_routes:
     tils_routes_cleanup();
-
-    fprintf(stdout, "Goodbye\n");
     return res;
 }

@@ -29,9 +29,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 #include <lib/hashtable.h>
-#include <lib/err.h>
 #include <lib/util.h>
 
 #include "hashtable_private.h"
@@ -86,7 +86,7 @@ htable_t *htable_new() {
  */
 int htable_insert(htable_t *ht, char *key, void *value) {
     if (ht == NULL)
-        return ERR_INP;
+        return EINVAL;
 
     int ind = htable_hash(ht, key);
     hnode_t **hnode_p = ht->table + ind;
@@ -103,7 +103,7 @@ int htable_insert(htable_t *ht, char *key, void *value) {
     /* Key wasn't found, so allocate a fresh node */
     *hnode_p = malloc(sizeof(hnode_t));
     if (*hnode_p == NULL)
-        return ERR_MEM_ALLOC;
+        return ENOMEM;
 
     size_t nlen;
     MIN(nlen, strlen(key), HTABLE_MAX_KEY_LEN);
@@ -121,7 +121,7 @@ int htable_insert(htable_t *ht, char *key, void *value) {
 
 cleanup_hnode:
     free(*hnode_p);
-    return ERR_MEM_ALLOC;
+    return ENOMEM;
 }
 
 /**
@@ -135,7 +135,7 @@ cleanup_hnode:
  */
 int htable_lookup(htable_t *ht, char *key, void **value) {
     if (ht == NULL)
-        return ERR_INP;
+        return EINVAL;
 
     int ind = htable_hash(ht, key);
     hnode_t **hnode_p = ht->table + ind;
@@ -163,7 +163,7 @@ int htable_lookup(htable_t *ht, char *key, void **value) {
  */
 int htable_delete(htable_t *ht, char *key, void **value) {
     if (ht == NULL)
-        return ERR_INP;
+        return EINVAL;
 
     int ind = htable_hash(ht, key);
     hnode_t **hnode_p = ht->table + ind;

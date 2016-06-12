@@ -30,9 +30,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <errno.h>
 
 #include <lib/util.h>
+#include <lib/logging.h>
 #include <tils/conn.h>
 
 /**
@@ -177,8 +177,7 @@ void tils_conn_buf_init(tils_conn_buf_t **conn_buf, int conn_cnt) {
         (*conn_buf)->conns = calloc(sizeof(tils_conn_t), conn_cnt);
         (*conn_buf)->conn_cnt = conn_cnt;
     } else if (malloc_err == 1 || (*conn_buf)->conns == NULL) {
-        fprintf(stderr, ERROR "No memory for initialization of connection "
-                "buffers (%s).\n", strerror(errno));
+        log_err("No memory for initialization of connection");
         exit(-1);
     }
 }

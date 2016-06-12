@@ -32,7 +32,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
-#include <errno.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -42,6 +41,7 @@
 #include <arpa/inet.h>
 
 #include <lib/util.h>
+#include <lib/logging.h>
 #include <tils/io_util.h>
 
 static int _fd_limit;
@@ -55,15 +55,13 @@ rlim_t set_open_fd_limit() {
     struct rlimit r;
 
     if (getrlimit(RLIMIT_NOFILE, &r) < 0)
-        fprintf(stderr, ERROR "Unable to get file descriptor limit. (%s)\n", 
-                strerror(errno));
+        log_err("Unable to get file descriptor limit");
 
     if (r.rlim_cur < r.rlim_max)
         r.rlim_cur = r.rlim_max;
 
     if (setrlimit(RLIMIT_NOFILE, &r) < 0)
-        fprintf(stderr, ERROR "Unable to set file descriptor limit. (%s)\n", 
-                strerror(errno));
+        log_err("Unable to set file descriptor limit");
 
     return r.rlim_cur;
 }
@@ -91,8 +89,7 @@ int init_server(int port) {
 
     /* Get a file descriptor for our socket */
     if ((server_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        fprintf(stderr, ERROR "Unable to create socket "
-                "(%s)\n", strerror(errno));
+        log_err("Unable to create socket");
         goto fail;
     }
 
@@ -108,15 +105,14 @@ int init_server(int port) {
 
     /* Bind the socket file descriptor to our network interface */
     if (bind(server_fd, (struct sockaddr *)&ip4server, sizeof(ip4server)) < 0) {
-        fprintf(stderr, ERROR "Unable to bind socket (%s)\n", strerror(errno));
+        log_err("Unable to bind socket");
         goto cleanup_socket;
     }
 
     /* Listen for connections on this socket. AFAIK, the second argument
      * (backlog) is a suggestion, not a hard value. */
     if (listen(server_fd, 16) < 0) {
-        fprintf(stderr, ERROR "Unable to listen on socket "
-                "(%s)\n", strerror(errno));
+        log_err("Unable to listen on socket");
         goto cleanup_socket;
     }
 

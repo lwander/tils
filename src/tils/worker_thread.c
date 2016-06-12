@@ -30,9 +30,7 @@
 
 #define _GNU_SOURCE
 
-#include <errno.h>
 #include <assert.h>
-#include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -44,6 +42,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <lib/logging.h>
 #include <tils/io_util.h>
 #include <tils/serve.h>
 #include <tils/accept.h>
@@ -67,11 +66,9 @@ void _tils_sched_thread(tils_wt_t *self) {
 
     pthread_t thread = pthread_self();
     if (pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset) != 0) {
-        fprintf(stderr, WARN "Couldn't bind thread (%s).\n", 
-                strerror(errno));
+        log_warn("Couldn't bind thread");
     } else {
-        fprintf(stdout, INFO "Bound thread %d to core %d.\n", self->id,
-                assigned_core);
+        log_info("Bound thread %d to core %d", self->id, assigned_core);
     }
 }
 
@@ -139,7 +136,7 @@ void *_tils_handle_connections(void *_self) {
         int res = 0;
         if (UNLIKELY((res = select(nfds + 1, &read_fs, 
                             NULL, NULL, &timeout)) < 0)) {
-            fprintf(stderr, ERROR "Select failed (%s).\n", strerror(errno));
+            log_err("Select failed.");
             exit(-1);
         }
 
@@ -161,8 +158,7 @@ void *_tils_handle_connections(void *_self) {
              *    it's newly assigned server_fd.
              * 2. Not read from read_fd, call select, and wake up at once. */
             if (write(self->write_fd, &self->server_fd, sizeof(int)) <= 0) {
-                fprintf(stderr, ERROR "Failed to pass token (%s).\n", 
-                        strerror(errno));
+                log_err("Failed to pass token.");
                 exit(-1);
             }
 
@@ -194,8 +190,7 @@ void *_tils_handle_connections(void *_self) {
         /* Is it our turn to become leader? */
         if (FD_ISSET(self->read_fd, &read_fs)) {
             if (read(self->read_fd, &self->server_fd, sizeof(int)) <= 0) {
-                fprintf(stderr, ERROR "Failed to get token (%s).\n", 
-                        strerror(errno));
+                log_err("Failed to get token");
                 exit(-1);
             }
             assert(self->server_fd >= 0);
@@ -230,8 +225,7 @@ void tils_start_thread_pool(int server_fd) {
 
     for (int i = 0; i < THREAD_COUNT; i++) {
         if (pipe(pipefd) < 0) {
-            fprintf(stderr, ERROR "Failed to create pipe between threads "
-                    "(%s).\n", strerror(errno));
+            log_err("Failed to create pipe between threads");
             exit(-1);
         }
 

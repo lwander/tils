@@ -23,33 +23,29 @@
  * @author Lars Wander
  */
 
-#ifndef _UTIL_H_
-#define _UTIL_H_
+#ifndef _LOGGING_H_
+#define _LOGGING_H_
 
-#include <time.h>
+#define ANSI_BOLD    "\x1b[1m"
+#define ANSI_RED     "\x1b[31m"
+#define ANSI_GREEN   "\x1b[32m"
+#define ANSI_YELLOW  "\x1b[33m"
+#define ANSI_BLUE    "\x1b[34m"
+#define ANSI_MAGENTA "\x1b[35m"
+#define ANSI_CYAN    "\x1b[36m"
+#define ANSI_RESET   "\x1b[0m"
+#define ANSI_CLEAR   "\r\x1b[K"
 
-#define USE_BENCH 
+#define INFO   ANSI_BOLD " [INFO] " ANSI_RESET
+#define WARN   ANSI_BOLD ANSI_YELLOW " [WARN] " ANSI_RESET
+#define ERROR  ANSI_BOLD ANSI_RED "[ERROR] " ANSI_RESET
 
-#define MAX(res, a, b) \
-   do { __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     res = (_a > _b ? _a : _b); } while (0)
+#define MAX_LOG_LENGTH  (256)
+#define MAX_TIME_LENGTH  (26)
+#define MAX_ERRNO_LENGTH  (128)
 
-#define MIN(res, a, b) \
-   do { __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     res = (_a < _b ? _a : _b); } while (0)
+void log_info(const char *format, ...);
+void log_warn(const char *format, ...);
+void log_err(const char *format, ...);
 
-
-#define CACHE_LINE_SIZE (64)
-
-#define HTTP_PORT (80)
-#define REQUEST_BUF_SIZE (1 << 12)
-#define WORD_BUF_SIZE (1 << 7)
-
-#define TIME_NOW (((double) (clock())) / CLOCKS_PER_SEC)
-
-#define LIKELY(x)       __builtin_expect((x),1)
-#define UNLIKELY(x)     __builtin_expect((x),0)
-
-#endif /* _UTIL_H_ */
+#endif /* _LOGGING_H_ */
