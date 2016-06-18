@@ -34,6 +34,7 @@
 #include <lib/queue.h>
 #include <lib/logging.h>
 
+#include <errno.h>
 #include <stdlib.h>
 #include <stdatomic.h>
 
@@ -63,6 +64,23 @@ cleanup_res:
 
 cleanup_none:
     return NULL;
+}
+
+/**
+ * @brief Checks if the given queue is full
+ *
+ * @param q The queue to check
+ *
+ * @return 0 if not full, EXFULL if full.
+ */
+int _queue_full(queue_t *q) {
+    int size = atomic_load_explicit(&q->size, memory_order_acquire);
+
+    if (size == q->capacity) {
+        return 0;
+    } else {
+        return EXFULL;
+    }
 }
 
 int queue_insert(queue_t *q, void *value) {
