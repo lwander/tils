@@ -11,3 +11,18 @@ The goal is to create a static HTTP library, with a couple of constraints.
 4. Run 1 thread per CPU core.
 
 5. Minimal connection overhead.
+
+## Compiling
+
+Requires GCC 4.4+, tested with 4.9.2
+
+```
+$ make       # to build
+$ make clean # to remove artifacts & executable
+```
+
+## Running
+
+```
+$ ./tils [port number] # default port is 80
+```

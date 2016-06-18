@@ -35,14 +35,36 @@
 #include <lib/logging.h>
 
 #include <stdlib.h>
+#include <stdatomic.h>
 
 #include "queue_private.h"
 
 /**
  * @brief Allocate a fresh, empty queue
+ *
+ * @param capacity The capacity of the queue
  */
-queue_t *queue_new() {
-    queue_t * res = (queue_t *)calloc(sizeof(queue_t), 1);
+queue_t *queue_new(int capacity) {
+    queue_t *res = (queue_t *)calloc(sizeof(queue_t), 1);
+    if (res == NULL) {
+        goto cleanup_none;
+    }
 
+    res->buf = (void **)calloc(sizeof(void *), capacity);
+    if (res->buf == NULL) {
+        goto cleanup_res;
+    }
+
+    res->capacity = capacity;
     return res;
+
+cleanup_res:
+    free(res);
+
+cleanup_none:
+    return NULL;
+}
+
+int queue_insert(queue_t *q, void *value) {
+    return 0;
 }

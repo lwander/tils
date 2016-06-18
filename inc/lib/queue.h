@@ -29,7 +29,7 @@
 struct _queue;
 typedef struct queue queue_t;
 
-queue_t *queue_new();
+queue_t *queue_new(int capacity);
 int queue_insert(queue_t *q, void *value);
 int queue_remove(queue_t *q, void **value);
 void queue_free(queue_t *q, void (*free_value)(void *));
