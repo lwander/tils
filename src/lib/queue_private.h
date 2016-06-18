@@ -27,6 +27,20 @@
 #define _QUEUE_PRIVATE_H_
 
 typedef struct queue {
+    /* Ring buffer is a list of void* pointers. */
+    void **buf;
+    
+    /* First element in queue */
+    int start;
+
+    /* First non-empty element in queue */
+    int end;
+
+    /* Max size of the buffer */
+    int capacity;
+
+    /* Number of stored elements */
+    int size;
 } queue_t;
 
 #endif /* _QUEUE_PRIVATE_H_ */

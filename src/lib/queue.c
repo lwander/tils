@@ -20,21 +20,29 @@
  *
  * @brief Queue data structure implementation
  *
- * The queue works by maintaining 3 internal queues. At any time, 2 are in
- * use. One is being added to by the producer, and the other is being removed
- * from by the consumer. These queues are called Q_P and Q_C respectively, and
- * stand for the number labeling each buffer.
- *
- * If the Q_C is empty, we increment Q_C
- *
- * Q_C := Q_C + 1 % 3. 
- *
- * Now if Q_C != Q_P, then nothing special happens. If Q_C == Q_P, we need to
- * increment Q_P atomically. The trick is that insertions and removals from 
- * each queue are atomic as well, as in this scenario it is possible that an
- * insertion and a removal are happening concurrently, so it is critical that
- * the same piece of data is not inserted and removed at the same time.
+ * The queue is a single ring buffer that maintains atomicity by only reporting
+ * an insertion as successful by incrementing the end of the buffer only
+ * when the insertion has completed. This way any removal will fail until we
+ * can guarantee there is data to remove. Similarly, a removal will only
+ * increment the start of the buffer when the removal has completed, this way
+ * we will not fail to reject an insertion (due to the queue being full) when
+ * the first element of the queue hasn't been removed yet.
  *
  * @author Lars Wander 
  */
 
+#include <lib/queue.h>
+#include <lib/logging.h>
+
+#include <stdlib.h>
+
+#include "queue_private.h"
+
+/**
+ * @brief Allocate a fresh, empty queue
+ */
+queue_t *queue_new() {
+    queue_t * res = (queue_t *)calloc(sizeof(queue_t), 1);
+
+    return res;
+}

@@ -17,7 +17,7 @@ TEST_EXECUTABLE=test-tils
 # Files needed only by c-http executable
 TILS_SRCS=main.c tils/routes.c tils/worker_thread.c tils/io_util.c \
     tils/accept.c tils/request.c tils/serve.c tils/conn.c \
-	tils/tils.c lib/hashtable.c lib/logging.c
+	tils/tils.c lib/hashtable.c lib/logging.c lib/queue.c
 
 # Files required by unit tests & c-http executable
 SHRD_SRCS=

@@ -16,7 +16,7 @@
  */
 
 /**
- * @file lib/atomic_queue.h
+ * @file lib/queue.h
  *
  * @brief Atomic, lock-free, single producer single consumer queue
  *
