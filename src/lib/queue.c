@@ -10,7 +10,7 @@
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- * 
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with tils.  If not, see <http://www.gnu.org/licenses/>
  */
@@ -28,7 +28,7 @@
  * we will not fail to reject an insertion (due to the queue being full) when
  * the first element of the queue hasn't been removed yet.
  *
- * @author Lars Wander 
+ * @author Lars Wander
  */
 
 #include <lib/queue.h>
@@ -77,13 +77,42 @@ cleanup_none:
  * called by the lone consumer, so if it falsely reports that the queue is
  * full, the worst case scenario is we reject an insertion.
  *
- * @return 0 if not full, EXFULL if full.
+ * @return 0 if not full, 1 if full
  */
 int _queue_full(queue_t *q) {
-    if (q->size == q->capacity) {
-        return 0;
+    // `memory_order_relaxed` because we don't access memory that can be
+    // modified elsewhere in this function
+    int size = atomic_load_explicit(&q->size, memory_order_relaxed);
+
+    if (size == q->capacity) {
+        return 1;
     } else {
-        return EXFULL;
+        return 0;
+    }
+}
+
+/**
+ * @brief Check if the queue is empty
+ *
+ * @param q The queue to check
+ *
+ * The explicit assumption here is that this queue is single conusmer single
+ * producer. This is critical because `q->size` can change between the access
+ * of size, and the comparison with 0. This operation is only
+ * called by the lone consumer, so if it falsely reports that the queue is
+ * empty, the worst case scenario is we reject a removal.
+ *
+ * @return 0 if not empty, 1 if empty
+ */
+int _queue_empty(queue_t *q) {
+    // `memory_order_relaxed` because we don't access memory that can be
+    // modified elsewhere in this function
+    int size = atomic_load_explicit(&q->size, memory_order_relaxed);
+
+    if (size == 0) {
+        return 1;
+    } else {
+        return 0;
     }
 }
 
@@ -93,16 +122,44 @@ int _queue_full(queue_t *q) {
  * @param q The queue to insert into
  * @param v The value to insert
  *
- * @return 0 on success, error code otherwise
+ * @return 0 on success, -1 if no room to insert
  */
 int queue_insert(queue_t *q, void *v) {
-    int res = 0;
-    if ((res = _queue_full(q)) != 0) {
-        return res;
+    if (_queue_full(q)) {
+        return -1;
     }
 
     q->buf[q->end] = v;
     q->end = (q->end + 1) % q->capacity;
 
+    // Important that this operation acts as a memory barrier, to ensure we
+    // have written to the queue by the time this operation completes.
+    atomic_fetch_add(&q->size, 1);
+    return 0;
+}
+
+/**
+ * @brief Remove an element
+ *
+ * @param q The queue to insert into
+ * @param v A pointer to memory that will hold the resulting value.
+ *
+ * @return 0 on success, -1 if empty
+ */
+int queue_remove(queue_t *q, void **v) {
+    if (v == NULL) {
+        return EINVAL;
+    }
+
+    if (_queue_empty(q)) {
+        return -1;
+    }
+
+    *v = q->buf[q->start];
+    q->start = (q->start + 1) % q->capacity;
+
+    // Important that this operation acts as a memory barrier, to ensure we
+    // have read from the queue by the time this operation completes.
+    atomic_fetch_sub(&q->size, 1);
     return 0;
 }
