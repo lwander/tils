@@ -66,7 +66,7 @@ void _tils_sched_thread(tils_wt_t *self) {
 
     pthread_t thread = pthread_self();
     if (pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset) != 0) {
-        log_warn("Couldn't bind thread");
+        log_warn("Couldn't bind thread %d", self->id);
     } else {
         log_info("Bound thread %d to core %d", self->id, assigned_core);
     }
@@ -222,6 +222,14 @@ void *_tils_handle_connections(void *_self) {
 void tils_start_thread_pool(int server_fd) {
     int pipefd[2];
     int conns_per_thread = get_open_fd_limit() / THREAD_COUNT;
+
+    for (;;) {
+        int client_fd = accept4(server_fd, NULL, NULL, SOCK_NONBLOCK);
+        if (UNLIKELY(client_fd < 0)) {
+            log_warn("accept4 failure");
+            continue;
+        }
+    }
 
     for (int i = 0; i < THREAD_COUNT; i++) {
         if (pipe(pipefd) < 0) {
