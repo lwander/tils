@@ -65,38 +65,8 @@ typedef struct tils_conn {
     tils_conn_state state;
 } tils_conn_t;
 
-/**
- * @brief Used to store all connections that belong to a thread
- *
- * Implemented as a ring buffer. The idea is that when a thread hits its
- * max number of connections we can through away the oldest to make room
- * for the next.
- */
-typedef struct tils_conn_buf {
-    /* All connections in buffer */
-    tils_conn_t *conns;
-
-    /* Max number of connections */
-    int conn_cnt;
-
-    /* Index of first connection held. */
-    int start;
-
-    /* Index of first unused connection. */
-    int end;
-
-    /* Current size of buffer */
-    int size;
-} tils_conn_buf_t;
-
 void tils_conn_revitalize(tils_conn_t *conn);
 int tils_conn_check_alive(tils_conn_t *conn);
 tils_conn_state tils_conn_close(tils_conn_t *conn);
-
-void tils_conn_buf_init(tils_conn_buf_t **conn_buf, int conns);
-tils_conn_t *tils_conn_buf_push(tils_conn_buf_t *conn_buf, int client_fd, char *addr_buf);
-tils_conn_state tils_conn_buf_pop(tils_conn_buf_t *conn_buf);
-void tils_conn_buf_at(tils_conn_buf_t *conn_buf, int i, tils_conn_t **conn);
-int tils_conn_buf_size(tils_conn_buf_t *conn_buf);
 
 #endif /* _TILS_CONN_H_ */
