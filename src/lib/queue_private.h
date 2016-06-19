@@ -26,23 +26,21 @@
 #ifndef _QUEUE_PRIVATE_H_
 #define _QUEUE_PRIVATE_H_
 
-#include <stdatomic.h>
-
 typedef struct queue {
     /* Ring buffer is a list of void* pointers. */
     void **buf;
     
     /* First element in queue */
-    atomic_int start;
+    int start;
 
     /* First non-empty element in queue */
-    atomic_int end;
+    int end;
 
     /* Max size of the buffer */
     int capacity;
 
     /* Number of stored elements */
-    atomic_int size;
+    int size;
 } queue_t;
 
 #endif /* _QUEUE_PRIVATE_H_ */

@@ -43,7 +43,7 @@
 /**
  * @brief Allocate a fresh, empty queue
  *
- * @param capacity The capacity of the queue
+ * @param capacity The max capacity of the queue
  */
 queue_t *queue_new(int capacity) {
     queue_t *res = (queue_t *)calloc(sizeof(queue_t), 1);
@@ -71,18 +71,38 @@ cleanup_none:
  *
  * @param q The queue to check
  *
+ * The explicit assumption here is that this queue is single conusmer single
+ * producer. This is critical because `q->size` can change between the access
+ * of size, and the comparison with `q->capacity`. This operation is only
+ * called by the lone consumer, so if it falsely reports that the queue is
+ * full, the worst case scenario is we reject an insertion.
+ *
  * @return 0 if not full, EXFULL if full.
  */
 int _queue_full(queue_t *q) {
-    int size = atomic_load_explicit(&q->size, memory_order_acquire);
-
-    if (size == q->capacity) {
+    if (q->size == q->capacity) {
         return 0;
     } else {
         return EXFULL;
     }
 }
 
-int queue_insert(queue_t *q, void *value) {
+/**
+ * @brief Insert an element
+ *
+ * @param q The queue to insert into
+ * @param v The value to insert
+ *
+ * @return 0 on success, error code otherwise
+ */
+int queue_insert(queue_t *q, void *v) {
+    int res = 0;
+    if ((res = _queue_full(q)) != 0) {
+        return res;
+    }
+
+    q->buf[q->end] = v;
+    q->end = (q->end + 1) % q->capacity;
+
     return 0;
 }
